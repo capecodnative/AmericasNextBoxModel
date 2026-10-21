@@ -17,7 +17,6 @@ function renderUnits(){
  $('molar-mass-setting').hidden=viewUnits.selected.amount!=='g'&&!viewUnits.selected.molarMass;
  $('unit-molar-mass').value=viewUnits.selected.molarMass??'';
  $('molar-mass-note').textContent='Shared tracer molar mass; changing it converts displayed mass values while preserving molar inventories.';
- $('sidebar-unit-label').textContent=`${unitLabel('inventory')} · ${unitLabel('volume')} · ${unitLabel('time')}`;
  $('duration-unit').textContent=unitLabel('time');
  const labels={inventory:`Inventory · ${unitLabel('inventory')}`,concentration:`Concentration · ${unitLabel('concentration')}`,flux:`Process flux · ${unitLabel('constant')}`};
  for(const option of $('quantity').options)option.textContent=labels[option.value];

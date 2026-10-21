@@ -120,3 +120,6 @@ Reservoir widths now use visible title, inventory and concentration text plus 12
 
 ## Rounded linear graph ticks · 21 October 2026
 Linear axes now round their bounds outward to readable 1/2/2.5/5/10 step sizes rather than taking exact quarters of the trajectory range. A near-equilibrium maximum of 19.996 yields 0, 5, 10, 15, 20 instead of 4.999 and 9.998. Decimal and signed ranges are supported, and values remain inside the plotted domain. Logarithmic scaling is unchanged. All 23 tests pass, including new near-equilibrium, small-value and signed-range checks. Browser preview was unavailable in the previous tab session; numerical view tests verify the tick labels.
+
+## Sidebar credit organization · 21 October 2026
+Removed the unit summary and “Illustrative parameters” from Inside this lab. Its scientific assumptions remain. Added a Credits heading, labeled Dan Ohnemus with “Created by,” and moved Methods & teaching sources into Credits alongside the repository and AI attribution. Removed the obsolete unit-summary DOM update to avoid a startup error. Syntax and browser checks passed. Screenshot: `docs/sidebar-credits-preview.png`.

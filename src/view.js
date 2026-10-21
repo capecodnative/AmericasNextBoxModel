@@ -5,10 +5,19 @@ export function axisScale(values, logarithmic, start, end) {
   let min=usable.reduce((a,b)=>Math.min(a,b),logarithmic?Infinity:0);
   let max=usable.reduce((a,b)=>Math.max(a,b),logarithmic?-Infinity:0);
   if(min===max){if(logarithmic){min/=Math.sqrt(10);max*=Math.sqrt(10);}else max=min+1;}
+  let ticks;
+  if(!logarithmic){
+    // Round the domain outward to readable 1/2/2.5/5/10 intervals.
+    const raw=(max-min)/4,power=10**Math.floor(Math.log10(raw)),fraction=raw/power;
+    const step=([1,2,2.5,5,10].find(x=>x>=fraction-1e-12)??10)*power;
+    min=Math.floor(min/step)*step;max=Math.ceil(max/step)*step;
+    const count=Math.round((max-min)/step);
+    ticks=Array.from({length:count+1},(_,i)=>Number((min+i*step).toPrecision(12)));
+  }
   const transform=logarithmic?Math.log10:x=>x,lo=transform(min),hi=transform(max);
   return {
     map:value=>!Number.isFinite(value)||(logarithmic&&value<=0)?null:start+(transform(value)-lo)/(hi-lo)*(end-start),
-    ticks:Array.from({length:5},(_,i)=>logarithmic?10**(lo+(hi-lo)*i/4):min+(max-min)*i/4)
+    ticks:logarithmic?Array.from({length:5},(_,i)=>10**(lo+(hi-lo)*i/4)):ticks
   };
 }
 export function trajectoryPath(rows,xValue,yValue,xScale,yScale){

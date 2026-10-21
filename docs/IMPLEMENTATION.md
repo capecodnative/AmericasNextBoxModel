@@ -117,3 +117,6 @@ Replaced the long inventory unit list with separate prefix and base-unit selecto
 
 ## Compact reservoir padding · 21 October 2026
 Reservoir widths now use visible title, inventory and concentration text plus 12 nominal drawing pixels per side (scales with the diagram font). Removed the large 152-pixel minimum and the placeholder concentration-width reservation; retained a small 96-pixel minimum for very short labels. Full title wrapping and dimension-aware arrow endpoints remain intact. Browser measurement on the current one-box example showed width reduced from about 172 to 121 rendered pixels for a 93-pixel label. Syntax and browser checks passed. Screenshot: `docs/compact-box-padding-preview.png`.
+
+## Rounded linear graph ticks · 21 October 2026
+Linear axes now round their bounds outward to readable 1/2/2.5/5/10 step sizes rather than taking exact quarters of the trajectory range. A near-equilibrium maximum of 19.996 yields 0, 5, 10, 15, 20 instead of 4.999 and 9.998. Decimal and signed ranges are supported, and values remain inside the plotted domain. Logarithmic scaling is unchanged. All 23 tests pass, including new near-equilibrium, small-value and signed-range checks. Browser preview was unavailable in the previous tab session; numerical view tests verify the tick labels.

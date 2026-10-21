@@ -17,3 +17,12 @@ test('arrow tips lie outside node rectangles in horizontal, vertical and diagona
  const p=boxEdge({x:0,y:0},{x,y});assert.ok(Math.abs(p.x)>=85-1e-10||Math.abs(p.y)>=47-1e-10);
  }
 });
+
+test('linear ticks round near-equilibrium ranges and retain the full data domain',()=>{
+ assert.deepEqual(axisScale([10,19.996],false,225,30).ticks,[0,5,10,15,20]);
+ assert.deepEqual(axisScale([0,0.019996],false,225,30).ticks,[0,0.005,0.01,0.015,0.02]);
+ const signed=axisScale([-2.9,7.7],false,0,100);
+ assert.ok(signed.ticks[0]<=-2.9&&signed.ticks.at(-1)>=7.7);
+ assert.ok(signed.map(-2.9)>=0&&signed.map(7.7)<=100);
+ assert.equal(signed.ticks.some(x=>Object.is(x,-0)),false);
+});

@@ -1,0 +1,1 @@
+{"name":"americas-next-box-model","version":"0.1.0","private":true,"type":"module","scripts":{"test":"node --test","start":"python3 -m http.server 4173 --bind 127.0.0.1"}}

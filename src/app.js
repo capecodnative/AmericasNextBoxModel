@@ -1,5 +1,5 @@
 import {clone,validate,analytical,derivative} from './model.js';
-import {presets,blank} from './presets.js';
+import {presets,blank} from './presets.js?v=20261021-layout';
 import {variableName,poolVariable,variableProblem,budgetExpression} from './notation.js';
 import {unitSystem,toCanonical,displayModel} from './units.js';
 import {axisScale,trajectoryPath,boxEdge,wrapLabel} from './view.js';
@@ -82,7 +82,8 @@ function renderDiagram(){
    const dest=p.to?position(p.to):null,origin=p.from?position(p.from):null;
    const a=origin||{x:dest.x,y:dest.y>=150?dest.y-135:dest.y+135},b=dest||{x:Math.min(730,origin.x+170),y:origin.y+70};
    const dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy)||1;
-   const offset=model.processes.some((q,j)=>j<i&&q.from===p.to&&q.to===p.from)?-55:0;
+   const paired=Boolean(p.from&&p.to&&model.processes.some(q=>q.id!==p.id&&q.from===p.to&&q.to===p.from));
+   const offset=paired?-55:0;
    const control={x:(a.x+b.x)/2-dy/len*offset,y:(a.y+b.y)/2+dx/len*offset};
    const start=origin?boxEdge(a,control,9,1,boxes[p.from]):a,end=dest?boxEdge(b,control,9,1,boxes[p.to]):b;
    const ax=start.x,ay=start.y,bx=end.x,by=end.y;
@@ -94,7 +95,11 @@ function renderDiagram(){
    const halfWidth=Math.max(p.name.length,showCoefficients?lawEquation.length:0,showCoefficients?`${coefficientSymbol} = ${fmt(shown(p.law,p.value))} ${unitLabel(p.law)}`.length:0,14)*3.7*scale;
    const bottom=(showCoefficients?46:13)*scale;
    const obstacles=model.pools.map(pool=>{const point=position(pool.id),box=boxes[pool.id];return {left:point.x-box.width/2-6,right:point.x+box.width/2+6,top:point.y-box.height/2-6,bottom:point.y+box.height/2+($('show-volume').checked?24:6)*scale};}).concat(occupiedLabels);
-   const candidates=[0,-65,65,-110,110,-155,155].flatMap(oy=>[0,-100,100,-180,180].map(ox=>({x:Math.max(halfWidth+8,Math.min(752-halfWidth,cx+ox)),y:Math.max(30*scale,Math.min(height-8-bottom,cy+oy))}))).sort((a,b)=>Math.hypot(a.x-cx,a.y-cy)-Math.hypot(b.x-cx,b.y-cy));
+   // Put reciprocal labels outside mirrored curves, with matching block-center clearance.
+   const midpoint={x:(ax+2*cx+bx)/4,y:(ay+2*cy+by)/4};
+   const clearance=(showCoefficients?50:33)*scale,blockCenter=(showCoefficients?15:-1.5)*scale;
+   const preferred=paired?{x:midpoint.x+dy/len*clearance,y:midpoint.y-dx/len*clearance-blockCenter}:{x:cx,y:cy};
+   const candidates=[0,-65,65,-110,110,-155,155].flatMap(oy=>[0,-100,100,-180,180].map(ox=>({x:Math.max(halfWidth+8,Math.min(752-halfWidth,preferred.x+ox)),y:Math.max(24*scale,Math.min(height-8-bottom,preferred.y+oy))}))).sort((a,b)=>Math.hypot(a.x-preferred.x,a.y-preferred.y)-Math.hypot(b.x-preferred.x,b.y-preferred.y));
    const label=candidates.find(q=>!obstacles.some(o=>q.x+halfWidth>o.left&&q.x-halfWidth<o.right&&q.y+bottom>o.top&&q.y-25*scale<o.bottom))||{x:cx,y:cy};
    const lx=label.x,ly=label.y;
    occupiedLabels.push({left:lx-halfWidth-5,right:lx+halfWidth+5,top:ly-28*scale,bottom:ly+bottom+5});

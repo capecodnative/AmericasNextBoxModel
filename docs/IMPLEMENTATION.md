@@ -123,3 +123,9 @@ Linear axes now round their bounds outward to readable 1/2/2.5/5/10 step sizes r
 
 ## Sidebar credit organization · 21 October 2026
 Removed the unit summary and “Illustrative parameters” from Inside this lab. Its scientific assumptions remain. Added a Credits heading, labeled Dan Ohnemus with “Created by,” and moved Methods & teaching sources into Credits alongside the repository and AI attribution. Removed the obsolete unit-summary DOM update to avoid a startup error. Syntax and browser checks passed. Screenshot: `docs/sidebar-credits-preview.png`.
+
+## Opposing two-box preset layouts · 21 October 2026
+Examples 04 and 06 now place their boxes at x = 120 and 640 on the same y = 170 row, spreading the diagram toward the left/right sides while keeping boundary labels visible. Reduced the SVG minimum width to 640 px so both ends fit medium-width panes more readily. Existing saved coordinates remain unchanged; reopening either preset loads its revised arrangement. Versioned the preset-data import so previously cached definitions refresh. Syntax and browser checks confirmed both preset coordinates and the visible example 06 layout. Screenshot: `docs/two-box-layout-preview.png`.
+
+## Mirrored reciprocal fluxes · 21 October 2026
+Opposing directed transfers now receive equal curvature on opposite sides instead of making the first line straight and only the reverse line curved. Label groups use matching outward offsets from each curve’s midpoint and remain centered between the boxes, with collision fallback for crowded custom layouts. Browser checks of example 06 confirmed matching adsorption/desorption path geometry reflected across the reservoir centerline and aligned label x positions. Syntax check passed. Screenshot: `docs/mirrored-fluxes-preview.png`.

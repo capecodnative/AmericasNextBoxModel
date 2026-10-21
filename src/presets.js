@@ -12,4 +12,9 @@ model('Dissolved–particulate tracer','How do reversible scavenging and export 
 for(const preset of presets.slice(3,6)){
  for(const pool of preset.pools)pool.variableName=pool.variableName.charAt(0).toUpperCase()+pool.variableName.slice(1);
 }
+for(const index of [3,5]){
+ const preset=presets[index];
+ preset.layout[preset.pools[0].id]={x:120,y:170};
+ preset.layout[preset.pools[1].id]={x:640,y:170};
+}
 export function blank(){return model('Untitled model','Build a budget, then predict its behavior.',[pool('M','Reservoir',10)],[],[['M','Reservoir',10]],['Add a supply and removal process.','Add a second reservoir and an internal transfer.']);}

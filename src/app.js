@@ -1,12 +1,13 @@
+import {fluxBetween} from './editor.js';
 import {clone,validate,analytical,derivative} from './model.js';
-import {presets,blank} from './presets.js?v=20261021-layout';
+import {presets,blank} from './presets.js?v=20261021-boundary-flux';
 import {variableName,poolVariable,variableProblem,budgetExpression} from './notation.js';
 import {unitSystem,toCanonical,displayModel} from './units.js';
 import {axisScale,trajectoryPath,boxEdge,wrapLabel} from './view.js';
 const $=id=>document.getElementById(id), colors=['#227c75','#426fb0','#8660a8','#5c8a46','#b05287','#278b9b','#6465a8','#647548','#795d87','#536a7d'], selectedFluxColor='#cd8d3f';
 
 const esc=x=>String(x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let model=clone(presets[1]),selected={type:'pool',id:'M'},result=null,baseline=null,history=[],future=[],revision=0,timer=null,runTimer,connecting=false,connectionStart=null;
+let model=clone(presets[0]),selected={type:'pool',id:'M'},result=null,baseline=null,history=[],future=[],revision=0,timer=null,runTimer,connecting=false,connectionStart=null;
 let viewUnits=unitSystem(model);
  for(const [id,legacy,label] of [['unit-prefix','micro','micro (legacy)'],['unit-volume','mL','mL (legacy)']]){const select=$(id);select.querySelector('[data-legacy]')?.remove();if((id==='unit-prefix'?viewUnits.selected.prefix:viewUnits.selected.volume)===legacy){const option=document.createElement('option');option.value=legacy;option.textContent=label;option.dataset.legacy='true';select.add(option);}}
 const shown=(kind,value)=>value*viewUnits.factors[kind];
@@ -14,9 +15,6 @@ const unitLabel=kind=>viewUnits.labels[kind];
 function renderUnits(){
  viewUnits=unitSystem(model);
  for(const [key,id] of [['amount','unit-amount'],['prefix','unit-prefix'],['volume','unit-volume'],['time','unit-time']])$(id).value=viewUnits.selected[key];
- $('molar-mass-setting').hidden=viewUnits.selected.amount!=='g'&&!viewUnits.selected.molarMass;
- $('unit-molar-mass').value=viewUnits.selected.molarMass??'';
- $('molar-mass-note').textContent='Shared tracer molar mass; changing it converts displayed mass values while preserving molar inventories.';
  $('duration-unit').textContent=unitLabel('time');
  const labels={inventory:`Inventory · ${unitLabel('inventory')}`,concentration:`Concentration · ${unitLabel('concentration')}`,flux:`Process flux · ${unitLabel('constant')}`};
  for(const option of $('quantity').options)option.textContent=labels[option.value];
@@ -80,7 +78,8 @@ function renderDiagram(){
  model.processes.forEach((p,i)=>{
    const marker=selected.type==='process'&&selected.id===p.id?'arrow-selected':'arrow';
    const dest=p.to?position(p.to):null,origin=p.from?position(p.from):null;
-   const a=origin||{x:dest.x,y:dest.y>=150?dest.y-135:dest.y+135},b=dest||{x:Math.min(730,origin.x+170),y:origin.y+70};
+   const boundary=model.layout?.[p.id];
+   const a=origin||boundary||{x:dest.x,y:dest.y>=150?dest.y-135:dest.y+135},b=dest||boundary||{x:Math.min(730,origin.x+170),y:origin.y+70};
    const dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy)||1;
    const paired=Boolean(p.from&&p.to&&model.processes.some(q=>q.id!==p.id&&q.from===p.to&&q.to===p.from));
    const offset=paired?-55:0;
@@ -113,6 +112,12 @@ function renderDiagram(){
    const title=box.lines.map((line,j)=>`<tspan x="0" y="${titleY+j*18*scale}">${esc(line)}</tspan>`).join('');
    svg+=`<g class="node ${selected.type==='pool'&&selected.id===p.id?'selected':''}" style="--pool-color:${colors[i%colors.length]};--pool-tint:${colors[i%colors.length]}12" transform="translate(${x},${y})" data-pool="${esc(p.id)}" tabindex="0" role="button" aria-label="Inspect ${esc(p.name)}; arrow keys move"><rect x="${-box.width/2}" y="${-box.height/2}" width="${box.width}" height="${box.height}" rx="9"/><text class="pool-title" text-anchor="middle" style="font-size:${diagramFont}px">${title}</text><text y="${inventoryY}" text-anchor="middle" style="font-size:${22*scale}px">${fmt(shown('inventory',M))} <tspan style="font-size:${12*scale}px">${unitLabel('inventory')}</tspan></text><text y="${inventoryY+18*scale}" text-anchor="middle" style="font-size:${12*scale}px">${esc(`[${variableName(p)}]`)} = ${fmt(shown('concentration',M/V))} ${unitLabel('concentration')}</text>${$('show-volume').checked?`<text class="volume-label" style="font-size:${diagramFont}px" y="${box.height/2+16*scale}" text-anchor="middle">V = ${fmt(shown('volume',V))} ${unitLabel('volume')}</text>`:''}</g>`;
  });
+ if(connecting){
+   const targets=[['top',0,0,760,28,380,19],['bottom',0,height-28,760,28,380,height-9],['left',0,28,28,height-56,18,height/2],['right',732,28,28,height-56,742,height/2]];
+   svg+=targets.map(([side,x,y,w,h,tx,ty])=>`<g class="boundary-target ${connectionStart?.side===side?'active':''}" data-boundary="${side}" tabindex="0" role="button" aria-label="${side} external boundary"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="5"/><text x="${tx}" y="${ty}" text-anchor="middle" ${side==='left'||side==='right'?`transform="rotate(-90 ${tx} ${ty})"`:''}>External boundary</text></g>`).join('');
+   svg+='<path id="flux-preview" fill="none" stroke="#cd8d3f" stroke-width="2" stroke-dasharray="6 4" pointer-events="none"/>';
+ }
+ $('diagram').classList.toggle('adding-flux',connecting);
  $('diagram').innerHTML=svg;
 }
 let inspectorHelp={};
@@ -229,28 +234,13 @@ function renderResults(){
  $('diagnostics').innerHTML=[[`Total inventory · ${unitLabel('inventory')}`,fmt(shown('inventory',total))],[`Net boundary flux · ${unitLabel('constant')}`,fmt(shown('constant',net))],[`Budget residual · ${unitLabel('inventory')}`,fmt(shown('inventory',row.residual))],[error===null?`Integrated boundary input · ${unitLabel('inventory')}`:`Analytical error · ${unitLabel('inventory')}`,fmt(shown('inventory',error===null?row.external:row.inventory[0]-error))]].map(([label,v])=>`<div class="metric"><small>${label}</small><strong>${v}</strong></div>`).join('');
  $('baseline').disabled=index<0;
 }
-let pendingMassUnit=null;
 function updateDisplayUnits(update){
  const next={...viewUnits.selected,...update};
  unitSystem({displayUnits:next});
  remember();model.displayUnits=next;render();
  try{localStorage.setItem('anbm-model',JSON.stringify(model));}catch{}
 }
-for(const [key,id] of [['amount','unit-amount'],['prefix','unit-prefix'],['volume','unit-volume'],['time','unit-time']])$(id).onchange=e=>{
- const value=e.target.value;
- if(key==='amount'&&value==='g'&&!model.displayUnits?.molarMass){
-  pendingMassUnit=value;$('molar-mass-setting').hidden=false;
-  $('molar-mass-note').textContent=`Enter a positive tracer molar mass (g/mol) to apply ${value}. Other values still use ${unitLabel('inventory')} until it is supplied.`;
-  $('unit-molar-mass').focus();return;
- }
- if(key==='prefix'&&pendingMassUnit){const pending=pendingMassUnit;updateDisplayUnits({prefix:value});pendingMassUnit=pending;$('unit-amount').value=pending;$('molar-mass-setting').hidden=false;$('molar-mass-note').textContent='Enter a positive tracer molar mass (g/mol) to apply mass units.';return;}
- pendingMassUnit=null;updateDisplayUnits({[key]:value});
-};
-$('unit-molar-mass').oninput=e=>{
- const value=Number(e.target.value);
- if(!Number.isFinite(value)||value<=0){e.target.setCustomValidity('Enter a positive molar mass in g/mol.');return;}
- e.target.setCustomValidity('');updateDisplayUnits({molarMass:value,...(pendingMassUnit?{amount:pendingMassUnit}:{})});pendingMassUnit=null;
-};
+for(const [key,id] of [['amount','unit-amount'],['prefix','unit-prefix'],['volume','unit-volume'],['time','unit-time']])$(id).onchange=e=>updateDisplayUnits({[key]:e.target.value});
 $('lessons').onclick=e=>{const b=e.target.closest('[data-lesson]');if(b)change(()=>{model=clone(presets[+b.dataset.lesson]);selected={type:'pool',id:model.pools[0].id};});};
 $('blank').onclick=()=>change(()=>{model=blank();selected={type:'pool',id:'M'};});
 $('undo').onclick=()=>{if(history.length){future.push(clone(model));model=history.pop();changed();}};
@@ -290,16 +280,48 @@ $('inspector').onclick=e=>{
 $('add-pool').onclick=()=>change(()=>{const id=uid('M');model.compartments.push({id,name:'New reservoir',volume:10});model.pools.push({id,name:'New reservoir',variableName:nextVariable(),initial:10,compartment:id});model.layout[id]={x:180+model.pools.length*70%450,y:220};selected={type:'pool',id};});
 $('add-process').onclick=()=>{if(!model.pools.length)return;change(()=>{const id=uid('F');model.processes.push({id,name:'New process',from:selected.type==='pool'?selected.id:model.pools[0].id,to:model.pools.find(p=>p.id!==selected.id)?.id||null,law:'firstOrder',value:0.1,forcing:{type:'constant'}});selected={type:'process',id};});};
 $('equations').onclick=e=>{const el=e.target.closest('[data-term]');if(el)choose('process',el.dataset.term);};
-function connectPool(id){if(!connectionStart){connectionStart=id;$('status').textContent='Now select the receiving pool (or drag to it).';return;}if(id===connectionStart)return;const from=connectionStart;change(()=>{const pid=uid('F');model.processes.push({id:pid,name:'Transfer',from,to:id,law:'firstOrder',value:0.1,forcing:{type:'constant'}});selected={type:'process',id:pid};});}
-$('connect').onclick=()=>{connecting=!connecting;connectionStart=null;$('connect').setAttribute('aria-pressed',String(connecting));$('status').textContent=connecting?'Select the donor, then the recipient, or drag between them. Escape cancels.':'';};
-$('diagram').onclick=e=>{const p=e.target.closest('[data-process]');if(p)choose('process',p.dataset.process);};
+function boundaryPoint(side,p){
+ const h=canvasHeight();
+ return {x:side==='left'?14:side==='right'?746:Math.max(35,Math.min(725,p?.x??380)),y:side==='top'?14:side==='bottom'?h-14:Math.max(35,Math.min(h-35,p?.y??h/2))};
+}
+function endpoint(el,p){
+ const target=el?.closest('[data-pool],[data-boundary]');
+ if(!target)return null;
+ return target.hasAttribute('data-pool')?{pool:target.dataset.pool}:{pool:null,side:target.dataset.boundary,point:boundaryPoint(target.dataset.boundary,p)};
+}
+function sameEndpoint(a,b){return a.pool===b.pool&&(a.pool!==null||a.side===b.side);}
+function connectEndpoint(end){
+ if(!connectionStart){connectionStart=end;renderDiagram();return;}
+ if(sameEndpoint(connectionStart,end))return;
+ let process;
+ try{process=fluxBetween(uid('F'),connectionStart.pool,end.pool);}catch(error){$('status').textContent=error.message;return;}
+ const boundary=connectionStart.pool===null?connectionStart:end.pool===null?end:null;
+ change(()=>{model.processes.push(process);if(boundary){model.layout??={};model.layout[process.id]=boundary.point;}selected={type:'process',id:process.id};});
+}
+$('connect').onclick=()=>{connecting=!connecting;connectionStart=null;$('connect').setAttribute('aria-pressed',String(connecting));$('status').textContent=connecting?'Select the donor, then the recipient, or drag between them. Highlighted edges represent external sources and sinks. Escape cancels.':'';renderDiagram();};
+$('diagram').onclick=e=>{if(connecting)return;const p=e.target.closest('[data-process]');if(p)choose('process',p.dataset.process);};
 let drag;
 const point=e=>{const p=$('diagram').createSVGPoint();p.x=e.clientX;p.y=e.clientY;return p.matrixTransform($('diagram').getScreenCTM().inverse());};
-$('diagram').onpointerdown=e=>{const g=e.target.closest('[data-pool]');if(!g)return;if(connecting){connectPool(g.dataset.pool);if(connecting)$('diagram').setPointerCapture(e.pointerId);return;}choose('pool',g.dataset.pool);drag={id:g.dataset.pool,start:point(e),origin:{...position(g.dataset.pool)},moved:false};$('diagram').setPointerCapture(e.pointerId);};
-$('diagram').onpointermove=e=>{if(!drag)return;const p=point(e),dx=p.x-drag.start.x,dy=p.y-drag.start.y;if(!drag.moved&&Math.hypot(dx,dy)<3)return;if(!drag.moved){remember();drag.moved=true;}model.layout[drag.id]=clampPoolPosition(drag.id,drag.origin.x+dx,drag.origin.y+dy);renderDiagram();};
+$('diagram').onpointerdown=e=>{
+ if(connecting){const end=endpoint(e.target,point(e));if(end){e.preventDefault();connectEndpoint(end);if(connecting)$('diagram').setPointerCapture(e.pointerId);}return;}
+ const g=e.target.closest('[data-pool]');if(!g)return;choose('pool',g.dataset.pool);drag={id:g.dataset.pool,start:point(e),origin:{...position(g.dataset.pool)},moved:false};$('diagram').setPointerCapture(e.pointerId);
+};
+$('diagram').onpointermove=e=>{
+ if(connecting&&connectionStart){const p=point(e),start=connectionStart.pool?position(connectionStart.pool):connectionStart.point;$('flux-preview')?.setAttribute('d',`M${start.x},${start.y} L${p.x},${p.y}`);return;}
+ if(!drag)return;const p=point(e),dx=p.x-drag.start.x,dy=p.y-drag.start.y;if(!drag.moved&&Math.hypot(dx,dy)<3)return;if(!drag.moved){remember();drag.moved=true;}model.layout[drag.id]=clampPoolPosition(drag.id,drag.origin.x+dx,drag.origin.y+dy);renderDiagram();
+};
 function endDrag(){if(drag?.moved){try{localStorage.setItem('anbm-model',JSON.stringify(model));}catch{}$('undo').disabled=false;}drag=null;}
-$('diagram').onpointerup=e=>{if(connecting&&connectionStart){const target=document.elementFromPoint(e.clientX,e.clientY)?.closest('[data-pool]');if(target&&target.dataset.pool!==connectionStart)connectPool(target.dataset.pool);}endDrag();};$('diagram').onpointercancel=endDrag;
-$('diagram').onkeydown=e=>{const p=e.target.closest('[data-pool]'),f=e.target.closest('[data-process]');if(e.key==='Escape'){connecting=false;connectionStart=null;$('connect').setAttribute('aria-pressed','false');$('status').textContent='';}if(['Enter',' '].includes(e.key)){e.preventDefault();if(p){if(connecting)connectPool(p.dataset.pool);else choose('pool',p.dataset.pool);}if(f)choose('process',f.dataset.process);}if(p&&['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){e.preventDefault();remember();const pos=position(p.dataset.pool);model.layout[p.dataset.pool]=clampPoolPosition(p.dataset.pool,pos.x+(e.key==='ArrowRight'?10:e.key==='ArrowLeft'?-10:0),pos.y+(e.key==='ArrowDown'?10:e.key==='ArrowUp'?-10:0));renderDiagram();$('diagram').querySelector(`[data-pool="${CSS.escape(p.dataset.pool)}"]`).focus();}};
+$('diagram').onpointerup=e=>{if(connecting&&connectionStart){const end=endpoint(document.elementFromPoint(e.clientX,e.clientY),point(e));if(end&&!sameEndpoint(connectionStart,end))connectEndpoint(end);}endDrag();};$('diagram').onpointercancel=endDrag;
+$('diagram').onkeydown=e=>{
+ const p=e.target.closest('[data-pool]'),f=e.target.closest('[data-process]');
+ if(e.key==='Escape'){connecting=false;connectionStart=null;$('connect').setAttribute('aria-pressed','false');$('status').textContent='';renderDiagram();$('connect').focus();}
+ if(['Enter',' '].includes(e.key)){
+   e.preventDefault();
+   if(connecting){const end=endpoint(e.target);if(end){connectEndpoint(end);if(connecting){const selector=end.pool?`[data-pool="${CSS.escape(end.pool)}"]`:`[data-boundary="${end.side}"]`;$('diagram').querySelector(selector)?.focus();}}}
+   else if(p)choose('pool',p.dataset.pool);else if(f)choose('process',f.dataset.process);
+ }
+ if(!connecting&&p&&['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){e.preventDefault();remember();const pos=position(p.dataset.pool);model.layout[p.dataset.pool]=clampPoolPosition(p.dataset.pool,pos.x+(e.key==='ArrowRight'?10:e.key==='ArrowLeft'?-10:0),pos.y+(e.key==='ArrowDown'?10:e.key==='ArrowUp'?-10:0));renderDiagram();$('diagram').querySelector(`[data-pool="${CSS.escape(p.dataset.pool)}"]`).focus();}
+};
 $('duration').onchange=e=>change(()=>model.simulation.duration=toCanonical(model,'time',+e.target.value));
 $('show-coefficients').onchange=renderDiagram;$('show-volume').onchange=renderDiagram;
 $('log-x').onchange=renderResults;$('log-y').onchange=renderResults;
@@ -309,7 +331,7 @@ $('baseline').onclick=()=>{if(result){baseline=clone(result);renderResults();}};
 function download(name,data,type){const url=URL.createObjectURL(new Blob([data],{type})),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 $('summary').onclick=()=>{try{
  validate(model);const shownModel=displayModel(model);
- const text=[model.title,model.question,`Units: ${unitLabel('inventory')}, ${unitLabel('volume')}, ${unitLabel('time')}. Fixed volumes; one tracer currency.`,...(viewUnits.selected.molarMass?[`Tracer molar mass: ${viewUnits.selected.molarMass} g/mol`]:[]),'',...shownModel.pools.map(p=>`${p.name} [${variableName(p)}]: initial ${fmt(p.initial)} ${unitLabel('inventory')}; volume ${fmt(shownModel.compartments.find(c=>c.id===p.compartment).volume)} ${unitLabel('volume')}`),'',...shownModel.processes.map(p=>`${p.name} [${p.id}]: ${p.from?poolVariable(shownModel,p.from):'boundary'} → ${p.to?poolVariable(shownModel,p.to):'boundary'}; F = ${budgetExpression(shownModel,p,fmt)} ${unitLabel('constant')}; coefficient in ${unitLabel(p.law)}; forcing ${JSON.stringify(p.forcing||{type:'constant'})}`),'',...shownModel.pools.map(p=>`d(${variableName(p)})/dt = `+(shownModel.processes.filter(q=>q.from===p.id||q.to===p.id).map(q=>(q.to===p.id?'+':'−')+' ('+budgetExpression(shownModel,q,fmt)+')').join(' ')||'0')),'',`Duration: ${shownModel.simulation.duration} ${unitLabel('time')}`,`Canonical solver settings (mol, yr): ${JSON.stringify(model.simulation)}`].join('\n');
+ const text=[model.title,model.question,`Units: ${unitLabel('inventory')}, ${unitLabel('volume')}, ${unitLabel('time')}. Fixed volumes; one tracer currency.`,'',...shownModel.pools.map(p=>`${p.name} [${variableName(p)}]: initial ${fmt(p.initial)} ${unitLabel('inventory')}; volume ${fmt(shownModel.compartments.find(c=>c.id===p.compartment).volume)} ${unitLabel('volume')}`),'',...shownModel.processes.map(p=>`${p.name} [${p.id}]: ${p.from?poolVariable(shownModel,p.from):'boundary'} → ${p.to?poolVariable(shownModel,p.to):'boundary'}; F = ${budgetExpression(shownModel,p,fmt)} ${unitLabel('constant')}; coefficient in ${unitLabel(p.law)}; forcing ${JSON.stringify(p.forcing||{type:'constant'})}`),'',...shownModel.pools.map(p=>`d(${variableName(p)})/dt = `+(shownModel.processes.filter(q=>q.from===p.id||q.to===p.id).map(q=>(q.to===p.id?'+':'−')+' ('+budgetExpression(shownModel,q,fmt)+')').join(' ')||'0')),'',`Duration: ${shownModel.simulation.duration} ${unitLabel('time')}`,`Solver settings (inventory: ${unitLabel('inventory')}; time: ${unitLabel('time')}): ${JSON.stringify(model.simulation)}`].join('\n');
  download('model-summary.txt',text,'text/plain');
 }catch(e){$('status').textContent=e.message;}};
 $('save').onclick=()=>{try{validate(model);download('box-model.json',JSON.stringify(model,null,2),'application/json');}catch(e){$('status').textContent=e.message;}};

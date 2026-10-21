@@ -18,3 +18,11 @@ aside{display:flex;flex-direction:column;align-items:stretch}.sidebar-credits{ma
 .sidebar-credits>h3{margin-bottom:16px}
 /* Keep both ends of wide two-box presets visible on medium-width panes. */
 #diagram{min-width:640px}
+
+/* Highlight the model boundary only while choosing flux endpoints. */
+.boundary-target {cursor:crosshair;}
+.boundary-target rect {fill:#fff4df;fill-opacity:.95;stroke:#cd8d3f;stroke-dasharray:5 4;stroke-width:1;}
+.boundary-target text {fill:#80551f;font-size:12px;pointer-events:none;}
+.boundary-target:hover rect,.boundary-target:focus rect,.boundary-target.active rect {fill:#f9dba7;stroke-width:2;stroke-dasharray:none;}
+.adding-flux .node {cursor:crosshair;}
+.adding-flux .process {pointer-events:none;}

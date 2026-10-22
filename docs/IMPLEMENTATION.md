@@ -265,3 +265,9 @@ Reservoir/flux selection in the main or floating diagram temporarily highlights 
 Both graphs now include wider transparent curve hit targets, with Enter/Space keyboard activation. Clicking a trajectory selects the matching reservoir/flux and highlights it across diagram, mini-view, budget and graph. Pointer clicks and drags retain existing time scrubbing. Selected curves draw last, including their hit targets.
 
 All 42 tests pass, including a regression for restoring hidden/highlighted legend choices after temporary selection. Browser checks verified temporary revelation of a hidden reservoir, restoration of its hidden state and an earlier different highlight on deselection, keyboard curve selection, and pointer selection of Mixing while scrubbing to 10 years. Screenshot: `docs/linked-curve-selection-preview.png`.
+
+Flux groups in the main and miniature diagrams no longer draw browser focus rectangles around their SVG bounds. Orange arrow selection remains the visual indication; fluxes retain keyboard focus and activation.
+
+Main and floating diagram controls now use the same labels, “Show coefficients” and “Show volumes.” Each pair of checkboxes stays synchronized; changing either copy redraws both diagrams. Browser checks verified coefficient labels disappear in both views, volume labels appear in both views, and main-to-mini synchronization. App syntax check passed. Screenshot: `docs/synced-diagram-options-preview.png`.
+
+The mini-view display checkboxes are now inside a Display dropdown aligned to the right of the Small/Medium/Large button row, removing their separate row. The synchronized main-diagram controls remain available.

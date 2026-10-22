@@ -644,7 +644,10 @@ $('diagram').onkeydown=e=>{
  if(!connecting&&p&&['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){e.preventDefault();remember();const pos=position(p.dataset.pool);model.layout[p.dataset.pool]=clampPoolPosition(p.dataset.pool,pos.x+(e.key==='ArrowRight'?10:e.key==='ArrowLeft'?-10:0),pos.y+(e.key==='ArrowDown'?10:e.key==='ArrowUp'?-10:0));renderDiagram();$('diagram').querySelector(`[data-pool="${CSS.escape(p.dataset.pool)}"]`).focus();saveCurrentModel();}
 };
 $('duration').onchange=e=>change(()=>model.simulation.duration=toCanonical(model,'time',+e.target.value));
-$('show-coefficients').onchange=renderDiagram;$('show-volume').onchange=renderDiagram;
+for(const id of ['show-coefficients','show-volume']){
+ const controls=[$(id),$('mini-'+id)];
+ for(const control of controls)control.onchange=()=>{for(const other of controls)other.checked=control.checked;renderDiagram();};
+}
 for(const id of ['log-x','log-y','flux-log-x','flux-log-y'])$(id).onchange=renderResults;
 for(const id of ['plot','flux-plot']){
  const plot=$(id);let scrubbing=false;

@@ -283,3 +283,9 @@ The main diagram now refreshes the miniature synchronously after each render. Re
 ### Resizable sidebar
 
 Added a right-edge separator with pointer capture, Left/Right resizing, Home/End limits and Enter/double-click reset. Width is stored locally and clamped between 180 px and the smaller of 460 px or 40% of the viewport. Window resizing reapplies the stored preference within those bounds. Below 701 px the separator is hidden and the existing stacked layout remains. Browser checks verified dragging to 340 px, retaining that width after reload, keyboard expansion to 350 px, reset to 255 px and a final drag to 320 px. JS syntax check passed. Screenshot: `docs/resizable-sidebar-preview.png`.
+
+### Floating-window viewport containment
+
+Mini-view positioning now uses the visible viewport (including zoom/pan offsets and scrollbar-aware width), with an 8 px inset. Bounds are reapplied synchronously on diagram refresh, when window dimensions change, and on viewport resize/pan, rather than only during manual movement. All size modes support height limits and shrinking diagram content within the available space. This prevents model changes or later content growth from pushing a previously placed preview offscreen.
+
+Added regression coverage for all four edges, content growth and offset viewports; all 44 tests pass. Browser checks dragged the preview beyond the upper-left and lower-right bounds and enlarged it at the lower-right edge; the complete window remained within the visible viewport. Screenshot: `docs/mini-viewport-bounds-preview.png`.

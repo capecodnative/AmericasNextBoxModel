@@ -243,3 +243,17 @@ Example 05 now defaults to the approved arrangement: surface phosphate and organ
 Reservoir and flux legend buttons now cycle normal → highlighted → hidden → normal. Highlighted trajectories draw last at increased width, dimming other curves in that graph; multiple curves can be highlighted together. Baselines and analytical references follow the corresponding curve’s emphasis and visibility. Hidden curves remain excluded from autoscaling. Buttons expose their state and next action to assistive technology. Opening a model resets the legend states.
 
 Inventory prefix/base-unit dropdowns share a fixed height and bottom alignment even when their labels wrap. The primary brand title is enlarged to 22 px (19 px on small screens). Verified both graph cycles in the browser, exact dropdown alignment, the Example 05 default, and the enlarged title; all 41 tests and the app syntax check pass. Screenshot: `docs/model-setup-legend-preview.png`.
+
+### Floating diagram preview (22 October 2026)
+
+Scrolling past the main diagram panel shows a read-only floating diagram with Small/Medium/Large controls. Hide collapses it to a Show diagram button; returning to the main editor hides both automatically. The header supports pointer dragging and keyboard arrow movement, constrained to the viewport. The preview fits the rendered diagram contents and limits its height on smaller screens.
+
+The preview mirrors current inventories, concentrations, flux values, selected budget terms and selected diagram objects. Highlighted graph reservoirs receive thicker borders, and highlighted graph fluxes receive the selected-flux treatment. A source SVG mutation observer keeps playback, scrubbing and edits synchronized; legend clicks also refresh emphasis. Cloned marker IDs are namespaced, and editing handles and duplicate keyboard targets are removed. Preview changes do not affect the model or saved diagram layout.
+
+Browser checks verified automatic appearance/disappearance across the editor boundary, all three sizes, hiding/restoring, keyboard movement, matching budget/curve emphasis and updated values at the final time sample. All 41 tests and JS syntax checks pass. Screenshot: `docs/floating-diagram-preview.png`.
+
+### Selectable, minimized diagram preview
+
+The floating diagram’s Minimize button leaves a prominent fixed lower-right Show diagram button. This restore control remains available after scrolling back to the editor, and explicitly restoring the preview opens it even alongside the main diagram. Automatic visibility still applies during ordinary scrolling.
+
+Miniature reservoirs, fluxes, compartments and boundary circles now support click and Enter/Space selection through the editor’s existing selection handler. Properties, diagram selection and budget terms stay synchronized without moving or resizing the model. Keyboard focus is restored after the live SVG refresh. Resize/port editing handles remain exclusive to the main diagram. Browser checks verified minimized restoration both below and beside the editor, mouse selection of fluxes, keyboard reservoir/compartment selection, matching budget terms and retained focus. JS syntax checks pass. Screenshot: `docs/selectable-mini-preview.png`.

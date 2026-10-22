@@ -1,3 +1,4 @@
+import {createMiniDiagram} from './mini-diagram.js?v=20261022-mini-select';
 import {excludedFromTransport,transportProblem,groupReservoirs,includedReservoirs,transportLinks,processParts,volumeLaw,normalizeTransportFlags,detachReservoir} from './compartments.js?v=20261021-flux-ports';
 import {fluxBetween,availableFluxLaws} from './editor.js?v=20261021-boundary-laws';
 import {clone,validate,analytical,derivative} from './model.js?v=20261021-flux-ports';
@@ -376,7 +377,7 @@ for(const [id,kind] of [['legend','pool'],['flux-legend','flux']])$(id).onclick=
  if(hidden.has(key))hidden.delete(key);
  else if(highlighted.has(key)){highlighted.delete(key);hidden.add(key);}
  else highlighted.add(key);
- renderResults();
+ renderResults();floatingDiagram.refresh();
  $(id).querySelector(`[data-curve="${CSS.escape(key)}"]`)?.focus({preventScroll:true});
 };
 function renderResponseGraph(mode,plotId,legendId,noteId){
@@ -701,4 +702,5 @@ $('diagram-resize').onpointermove=e=>{if(resizeStart)setDiagramHeight(resizeStar
 $('diagram-resize').onpointerup=()=>{resizeStart=null;};$('diagram-resize').onpointercancel=()=>{resizeStart=null;};
 $('diagram-resize').onkeydown=e=>{if(['ArrowUp','ArrowDown','Home','End'].includes(e.key)){e.preventDefault();setDiagramHeight(e.key==='Home'?260:e.key==='End'?1000:diagramHeight+(e.key==='ArrowDown'?20:-20));}};
 new ResizeObserver(()=>{$('diagram').setAttribute('viewBox',`0 0 760 ${canvasHeight()}`);renderDiagram();}).observe($('diagram-pane'));
+const floatingDiagram=createMiniDiagram($('diagram'),document.querySelector('.diagram-panel'),()=>highlightedCurves,choose);
 saveCurrentModel();render();fitDiagramToModel();run();

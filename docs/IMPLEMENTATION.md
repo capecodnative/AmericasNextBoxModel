@@ -271,3 +271,7 @@ Flux groups in the main and miniature diagrams no longer draw browser focus rect
 Main and floating diagram controls now use the same labels, “Show coefficients” and “Show volumes.” Each pair of checkboxes stays synchronized; changing either copy redraws both diagrams. Browser checks verified coefficient labels disappear in both views, volume labels appear in both views, and main-to-mini synchronization. App syntax check passed. Screenshot: `docs/synced-diagram-options-preview.png`.
 
 The mini-view display checkboxes are now inside a Display dropdown aligned to the right of the Small/Medium/Large button row, removing their separate row. The synchronized main-diagram controls remain available.
+
+### Manual mini-view sizing
+
+The floating diagram has a bottom-right resize grip supporting pointer dragging and keyboard arrows (20 px steps). Width and height can be set independently; the SVG scales proportionally within the resulting window. Custom dimensions stay within the viewport, with a 280 × 180 px minimum where space allows. Size presets clear custom dimensions and restore automatic proportions. Browser checks verified dragging from 420 × 389 to 320 × 329, keyboard expansion to 340 × 349, and Large resetting width to 600 px. JS syntax check passed. Screenshot: `docs/resizable-mini-preview.png`.

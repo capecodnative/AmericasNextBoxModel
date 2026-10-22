@@ -39,3 +39,48 @@ test('graph scrubbing selects the nearest visible sample on linear and log axes'
  assert.equal(nearestVisibleSample(rows,r=>r.t,log,-100),1);
  assert.equal(nearestVisibleSample(rows,r=>r.t,null,100),-1);
 });
+
+test('arrow contacts touch rounded source borders and leave exactly one marker length at the target',async()=>{
+ const {arrowBoxContact}=await import('../src/view.js');
+ for(const dimensions of [{width:152,height:76,radius:9},{width:270,height:160,radius:14}])for(const toward of [{x:500,y:0},{x:0,y:500},{x:200,y:100},{x:-200,y:-100}]){
+   const source=arrowBoxContact({x:0,y:0},toward,0,dimensions),target=arrowBoxContact({x:0,y:0},toward,6,dimensions);
+   assert.ok(Math.abs(Math.hypot(target.x-source.x,target.y-source.y)-6)<1e-10);
+   const x=Math.abs(source.x),y=Math.abs(source.y),w=dimensions.width/2,h=dimensions.height/2,r=dimensions.radius;
+   if(x>w-r&&y>h-r)assert.ok(Math.abs(Math.hypot(x-(w-r),y-(h-r))-r)<1e-8);
+   else assert.ok(Math.abs(x-w)<1e-8||Math.abs(y-h)<1e-8);
+ }
+});
+
+test('manual flux ports follow box movement and resizing while staying on rounded borders',async()=>{
+ const {normalizedBoxPort,boxPortContact,boxBorderNormal}=await import('../src/view.js');
+ const center={x:100,y:100},size={width:200,height:100,radius:14};
+ const port=normalizedBoxPort(center,size,{x:150,y:500});
+ assert.deepEqual(port,{x:0.0625,y:1});
+ const contact=boxPortContact(center,size,port);assert.equal(contact.y,150);
+ const moved=boxPortContact({x:200,y:300},{...size,width:400,height:200},port);
+ assert.equal(moved.y,400);assert.equal(moved.x,212.5);
+ assert.deepEqual(boxBorderNormal(center,size,contact),{x:0,y:1});
+ const corner=boxPortContact(center,size,{x:1,y:1}),normal=boxBorderNormal(center,size,corner);
+ assert.ok(Math.abs(Math.hypot(normal.x,normal.y)-1)<1e-10);
+ assert.equal(normalizedBoxPort(center,size,center),null);
+});
+
+test('compartment labels avoid arrows or reservoir rectangles and prefer clear positions',async()=>{
+ const {placeDiagramLabel}=await import('../src/view.js');
+ const candidates=[{x:10,y:30},{x:120,y:30},{x:10,y:70}];
+ const obstacles=[{left:40,right:50,top:0,bottom:50}];
+ assert.deepEqual(placeDiagramLabel(candidates,80,20,obstacles),candidates[1]);
+ assert.deepEqual(placeDiagramLabel([{x:10,y:30},{x:25,y:30}],80,20,[{left:0,right:50,top:0,bottom:50}]),{x:25,y:30});
+});
+
+test('shared-endpoint fluxes get distinct lanes, with the third on the centerline',async()=>{
+ const {parallelFluxRoutes}=await import('../src/view.js');
+ const processes=[{id:'a',from:'left',to:'right'},{id:'b',from:'right',to:'left'},{id:'c',from:'left',to:'right'},{id:'d',from:'left',to:'right'},{id:'e',from:'right',to:'left'}];
+ const two=parallelFluxRoutes(processes.slice(0,2)),three=parallelFluxRoutes(processes.slice(0,3)),all=parallelFluxRoutes(processes);
+ assert.equal(two.a.offset,three.a.offset);assert.equal(two.b.offset,three.b.offset);
+ assert.equal(three.c.offset,0);assert.equal(three.a.offset,-55);assert.equal(three.b.offset,-55);
+ const physical=processes.map(p=>all[p.id].offset*(p.from==='left'?1:-1));
+ assert.equal(new Set(physical).size,5);
+ const sameDirection=parallelFluxRoutes(processes.slice(0,3).map(p=>({...p,from:'left',to:'right'})));
+ assert.deepEqual(Object.values(sameDirection).map(p=>p.offset),[-55,55,0]);
+});

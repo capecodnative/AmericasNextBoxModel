@@ -1,4 +1,4 @@
-import {validate,derivative,flux,clone} from './model.js';
+import {validate,derivative,flux,clone} from './model.js?v=20261021-flux-ports';
 function rk4(f,t,y,h) {
   const add=(v,k,a)=>v.map((x,i)=>x+a*k[i]);
   const a=f(t,y),b=f(t+h/2,add(y,a,h/2)),c=f(t+h/2,add(y,b,h/2)),d=f(t+h,add(y,c,h));

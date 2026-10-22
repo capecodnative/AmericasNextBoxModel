@@ -56,3 +56,55 @@ export function nearestVisibleSample(rows,xValue,xScale,pixel){
  rows.forEach((row,i)=>{const x=xScale.map(xValue(row));if(x===null)return;const delta=Math.abs(x-pixel);if(delta<distance){distance=delta;nearest=i;}});
  return nearest;
 }
+
+// Contact with the visible rounded border; markerOffset is measured along the ray.
+export function arrowBoxContact(center,toward,markerOffset=0,dimensions={width:152,height:76,radius:9}){
+ let dx=toward.x-center.x,dy=toward.y-center.y;
+ const length=Math.hypot(dx,dy);if(!length){dx=1;dy=0;}else {dx/=length;dy/=length;}
+ const w=dimensions.width/2,h=dimensions.height/2,r=Math.min(dimensions.radius??9,w,h);
+ let distance=Math.min(dx?w/Math.abs(dx):Infinity,dy?h/Math.abs(dy):Infinity);
+ if(r&&Math.abs(dx*distance)>w-r&&Math.abs(dy*distance)>h-r){
+   const cx=Math.sign(dx)*(w-r),cy=Math.sign(dy)*(h-r),projection=dx*cx+dy*cy;
+   distance=projection+Math.sqrt(Math.max(0,projection*projection-cx*cx-cy*cy+r*r));
+ }
+ return {x:center.x+dx*(distance+markerOffset),y:center.y+dy*(distance+markerOffset)};
+}
+
+export function normalizedBoxPort(center,dimensions,point){
+ const x=(point.x-center.x)/(dimensions.width/2),y=(point.y-center.y)/(dimensions.height/2),extent=Math.max(Math.abs(x),Math.abs(y));
+ return extent>1e-10?{x:x/extent,y:y/extent}:null;
+}
+export function boxPortContact(center,dimensions,port){
+ return arrowBoxContact(center,{x:center.x+port.x*dimensions.width/2,y:center.y+port.y*dimensions.height/2},0,dimensions);
+}
+export function boxBorderNormal(center,dimensions,point){
+ const x=point.x-center.x,y=point.y-center.y,w=dimensions.width/2,h=dimensions.height/2,r=Math.min(dimensions.radius??9,w,h);
+ if(Math.abs(x)<=w-r+1e-8)return {x:0,y:Math.sign(y)};
+ if(Math.abs(y)<=h-r+1e-8)return {x:Math.sign(x),y:0};
+ const dx=x-Math.sign(x)*(w-r),dy=y-Math.sign(y)*(h-r),length=Math.hypot(dx,dy)||1;
+ return {x:dx/length,y:dy/length};
+}
+
+// Prefer the first clear label position; use the least overlap in crowded diagrams.
+export function placeDiagramLabel(candidates,width,height,obstacles){
+ let best=null,bestOverlap=Infinity;
+ for(const point of candidates){
+   const left=point.x,right=left+width,top=point.y-height,bottom=point.y;
+   const overlap=obstacles.reduce((sum,o)=>sum+Math.max(0,Math.min(right,o.right)-Math.max(left,o.left))*Math.max(0,Math.min(bottom,o.bottom)-Math.max(top,o.top)),0);
+   if(overlap<bestOverlap){best=point;bestOverlap=overlap;}if(!overlap)break;
+ }
+ return best;
+}
+
+// Stable physical lanes for shared endpoints, independent of each arrow's direction.
+export function parallelFluxRoutes(processes,endpointKey=p=>[p.from,p.to]){
+ const groups=new Map(),routes={};
+ for(const p of processes){const [from,to]=endpointKey(p);if(!from||!to){routes[p.id]={offset:0,count:1,rank:0};continue;}
+   const pair=[from,to].sort(),key=JSON.stringify(pair);if(!groups.has(key))groups.set(key,[]);groups.get(key).push({p,forward:from===pair[0]});
+ }
+ for(const members of groups.values())members.forEach(({p,forward},rank)=>{
+   const lane=members.length===1?0:rank===0?-55:rank===1?55:rank===2?0:(rank%2?-1:1)*Math.ceil(rank/2)*55;
+   routes[p.id]={offset:lane*(forward?1:-1),count:members.length,rank};
+ });
+ return routes;
+}

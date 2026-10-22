@@ -1,20 +1,35 @@
+import {transportProblem,processParts} from './compartments.js?v=20261021-compartments-4';
 import {validateUnitSelection} from './units.js';
 import {variableProblem} from './notation.js';
 export const clone = x => structuredClone(x);
 export const units = {constant:'mol/yr',firstOrder:'1/yr',exchange:'m³/yr',advection:'m³/yr'};
-export function validate(m) {
+export function validate(m,{allowTransportIssues=false}={}) {
   if (!m || m.schemaVersion !== 1) throw Error('Unsupported model schema (expected version 1).');
   for (const key of ['compartments','pools','processes']) if (!Array.isArray(m[key])) throw Error(`Missing ${key}.`);
   if (!m.pools.length || m.pools.length > 20 || m.processes.length > 80) throw Error('Use 1–20 pools and at most 80 processes.');
   if(typeof m.title!=='string' || typeof m.question!=='string' || !Array.isArray(m.experiments) || m.experiments.some(x=>typeof x!=='string')) throw Error('Missing model title, question, or experiment list.');
   for(const list of [m.compartments,m.pools,m.processes]) if(list.some(x=>!x || typeof x!=='object' || typeof x.name!=='string')) throw Error('Every model record needs a name.');
   if(!m.layout || typeof m.layout!=='object' || Object.values(m.layout).some(p=>!p || !Number.isFinite(p.x) || !Number.isFinite(p.y))) throw Error('Invalid diagram layout.');
+  if(m.diagramSizes!==undefined){
+    if(!m.diagramSizes||typeof m.diagramSizes!=='object')throw Error('Invalid diagram box sizes.');
+    for(const key of ['pools','compartments'])if(m.diagramSizes[key]!==undefined){
+      if(!m.diagramSizes[key]||typeof m.diagramSizes[key]!=='object'||Object.values(m.diagramSizes[key]).some(s=>!s||!Number.isFinite(s.width)||!Number.isFinite(s.height)||s.width<=0||s.height<=0))throw Error('Invalid diagram box sizes.');
+    }
+  }
+  if(m.diagramPorts!==undefined){
+    if(!m.diagramPorts||typeof m.diagramPorts!=='object')throw Error('Invalid diagram flux attachments.');
+    for(const ports of Object.values(m.diagramPorts)){
+      if(!ports||typeof ports!=='object')throw Error('Invalid diagram flux attachments.');
+      for(const end of ['from','to'])if(ports[end]!==undefined){const p=ports[end];if(!p||!Number.isFinite(p.x)||!Number.isFinite(p.y)||Math.max(Math.abs(p.x),Math.abs(p.y))>1.000001||Math.hypot(p.x,p.y)<1e-10)throw Error('Invalid diagram flux attachments.');}
+    }
+  }
   const unique = xs => new Set(xs.map(x=>x.id)).size === xs.length && xs.every(x=>typeof x.id==='string' && x.id.length);
   if (![m.compartments,m.pools,m.processes].every(unique)) throw Error('IDs must be unique within each record type.');
   const finite = (n,min=0) => typeof n==='number' && Number.isFinite(n) && n>=min;
   for(const c of m.compartments) if(!finite(c.volume) || c.volume===0) throw Error(`${c.name}: volume must be positive.`);
   for(const p of m.pools) if(!m.compartments.some(c=>c.id===p.compartment) || !finite(p.initial)) throw Error(`${p.name}: invalid compartment or initial inventory.`);
   for(const p of m.pools) if(p.variableName!==undefined){const problem=variableProblem(m.pools,p.id,p.variableName);if(problem)throw Error(`${p.name}: ${problem}`);}
+  for(const pool of m.pools)if(pool.excludeFromTransport!==undefined&&typeof pool.excludeFromTransport!=='boolean')throw Error(`${pool.name}: invalid Mixing+Advection exclusion setting.`);
   validateUnitSelection(m.displayUnits);
   const water = Object.fromEntries(m.compartments.map(c=>[c.id,0]));
   for(const p of m.processes) {
@@ -28,6 +43,7 @@ export function validate(m) {
       if(f.type==='pulse' && (!finite(f.end) || f.end<=f.start)) throw Error(`${p.name}: pulse end must follow start.`);
       if(f.type==='seasonal' && (!finite(f.amplitude) || f.amplitude>1 || !finite(f.period) || f.period===0)) throw Error(`${p.name}: use amplitude 0–1 and positive period.`);
     }
+    const problem=transportProblem(m,p);if(problem&&!allowTransportIssues)throw Error(`${p.name}: ${problem}`);
     if(p.law==='advection') {
       if(f && f.type!=='constant') throw Error('Time-dependent advection is not supported.');
       const a=m.pools.find(b=>b.id===p.from), b=m.pools.find(b=>b.id===p.to);
@@ -35,7 +51,7 @@ export function validate(m) {
     }
   }
   const q=m.processes.filter(p=>p.law==='advection').reduce((s,p)=>s+p.value,0);
-  if(Object.values(water).some(x=>Math.abs(x)>1e-10*Math.max(1,q))) throw Error('Fixed volumes require balanced advective water transport in every compartment. Add a return flow.');
+  if(!allowTransportIssues&&Object.values(water).some(x=>Math.abs(x)>1e-10*Math.max(1,q))) throw Error('Fixed volumes require balanced advective water transport in every compartment. Add a return flow.');
   const s=m.simulation;
   if(!s || !finite(s.duration) || !s.duration || !Number.isInteger(s.samples) || s.samples<10 || s.samples>2000 || !finite(s.rtol) || s.rtol<1e-12 || s.rtol>0.01 || !finite(s.atol) || s.atol<1e-14 || s.atol>0.01) throw Error('Invalid duration, sample count (10–2000), or solver tolerances.');
   return m;
@@ -46,15 +62,16 @@ export function factor(f,t) {
   if(f.type==='pulse') return t>=f.start && t<f.end?f.factor:1;
   return 1+f.amplitude*Math.sin(2*Math.PI*t/f.period);
 }
-export function flux(m,p,t,y) {
-  const index=id=>m.pools.findIndex(b=>b.id===id), conc=id=>y[index(id)]/m.compartments.find(c=>c.id===m.pools[index(id)].compartment).volume;
-  const a=p.value*factor(p.forcing,t);
-  return p.law==='constant'?a:p.law==='firstOrder'?a*y[index(p.from)]:p.law==='advection'?a*conc(p.from):a*(conc(p.from)-conc(p.to));
+function partFlux(m,p,t,y){
+ const index=id=>m.pools.findIndex(b=>b.id===id),conc=id=>y[index(id)]/m.compartments.find(c=>c.id===m.pools[index(id)].compartment).volume;
+ const a=p.value*factor(p.forcing,t);
+ return p.law==='constant'?a:p.law==='firstOrder'?a*y[index(p.from)]:p.law==='advection'?a*conc(p.from):a*(conc(p.from)-conc(p.to));
 }
+export function flux(m,p,t,y){return processParts(m,p).reduce((sum,part)=>sum+partFlux(m,part,t,y),0);}
 export function derivative(m,t,y) {
   const d=new Array(m.pools.length+1).fill(0);
-  for(const p of m.processes) {
-    const f=flux(m,p,t,y);
+  for(const process of m.processes)for(const p of processParts(m,process)) {
+    const f=partFlux(m,p,t,y);
     if(p.from) d[m.pools.findIndex(b=>b.id===p.from)]-=f; else d[d.length-1]+=f;
     if(p.to) d[m.pools.findIndex(b=>b.id===p.to)]+=f; else d[d.length-1]-=f;
   }

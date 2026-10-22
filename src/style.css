@@ -134,3 +134,12 @@ aside{display:flex;flex-direction:column;align-items:stretch}.sidebar-credits{ma
 #mini-diagram-window[data-size=custom] #mini-diagram{flex:1;min-height:0;height:0;max-height:none}
 #mini-diagram-resize{position:absolute;right:0;bottom:0;width:24px;height:24px;padding:4px;border:0;border-radius:5px 0 0;background:#edf3edcc;cursor:nwse-resize;touch-action:none}
 #mini-diagram-resize svg{width:16px;height:16px;fill:none;stroke:#607c73;stroke-width:1.5;pointer-events:none}
+
+.shell{--sidebar-default:255px;grid-template-columns:clamp(180px,var(--sidebar-width,var(--sidebar-default)),40vw) minmax(0,1fr)}
+#sidebar{position:relative;min-width:0}
+#sidebar-resize{position:absolute;right:-5px;top:0;bottom:0;width:10px;z-index:5;cursor:col-resize;touch-action:none}
+#sidebar-resize::after{content:'⋮';position:sticky;top:50vh;display:block;width:10px;height:32px;padding-top:5px;text-align:center;border-radius:4px;background:#d8e3d9;color:#607b70;font-size:16px;line-height:22px}
+#sidebar-resize:hover,#sidebar-resize:focus-visible{background:#227c7526;outline:none}
+body.resizing-sidebar,body.resizing-sidebar *{cursor:col-resize!important;user-select:none!important}
+@media(min-width:701px) and (max-width:1100px){.shell{--sidebar-default:210px}}
+@media(max-width:700px){#sidebar-resize{display:none}}

@@ -1,3 +1,4 @@
+import {setupSidebarResize} from './sidebar.js';
 import {curvePresentation} from './curve-state.js';
 import {createMiniDiagram} from './mini-diagram.js?v=20261022-mini-live-switch';
 import {excludedFromTransport,transportProblem,groupReservoirs,includedReservoirs,transportLinks,processParts,volumeLaw,normalizeTransportFlags,detachReservoir} from './compartments.js?v=20261021-flux-ports';
@@ -714,3 +715,5 @@ $('diagram-resize').onkeydown=e=>{if(['ArrowUp','ArrowDown','Home','End'].includ
 new ResizeObserver(()=>{$('diagram').setAttribute('viewBox',`0 0 760 ${canvasHeight()}`);renderDiagram();}).observe($('diagram-pane'));
 floatingDiagram=createMiniDiagram($('diagram'),document.querySelector('.diagram-panel'),()=>highlightedCurves,choose);
 saveCurrentModel();render();fitDiagramToModel();run();
+
+setupSidebarResize();

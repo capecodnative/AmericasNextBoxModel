@@ -50,3 +50,5 @@ Select a mixing or advective flux to reveal its two circular attachment handles.
 Click blank space in the model diagram to deselect all objects and hide their handles. Creation buttons show the object type beneath their text: arrow, solid reservoir box, or dashed compartment enclosure.
 
 Multiple fluxes between the same boxes use separate routes: two opposing curves, a centerline for the third, then wider curves for additional connections. Their labels stay near their own paths and slide along them to avoid collisions.
+
+The sidebar width can be adjusted by dragging its right-edge divider. Focus the divider and use Left/Right arrows for keyboard resizing; double-click or press Enter to reset. The width is saved locally. Small screens retain the stacked layout.

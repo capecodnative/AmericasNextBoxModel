@@ -279,3 +279,7 @@ The floating diagram has a bottom-right resize grip supporting pointer dragging 
 ### Immediate mini-view updates on model changes
 
 The main diagram now refreshes the miniature synchronously after each render. Removed the deferred SVG mutation observer and the visibility guard that skipped hidden/minimized refreshes, preventing old model snapshots from persisting during sidebar navigation. Live playback and selection use the same render path. Browser checks verified Example 01 while minimized, switching to Example 06 with matching reservoirs/fluxes in both diagrams, opening a saved nutrient-cycle model, and returning to Example 05. All 42 tests and JS syntax checks pass. Screenshot: `docs/mini-model-switch-preview.png`.
+
+### Resizable sidebar
+
+Added a right-edge separator with pointer capture, Left/Right resizing, Home/End limits and Enter/double-click reset. Width is stored locally and clamped between 180 px and the smaller of 460 px or 40% of the viewport. Window resizing reapplies the stored preference within those bounds. Below 701 px the separator is hidden and the existing stacked layout remains. Browser checks verified dragging to 340 px, retaining that width after reload, keyboard expansion to 350 px, reset to 255 px and a final drag to 320 px. JS syntax check passed. Screenshot: `docs/resizable-sidebar-preview.png`.

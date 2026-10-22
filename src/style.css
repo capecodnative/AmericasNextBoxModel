@@ -143,3 +143,8 @@ aside{display:flex;flex-direction:column;align-items:stretch}.sidebar-credits{ma
 body.resizing-sidebar,body.resizing-sidebar *{cursor:col-resize!important;user-select:none!important}
 @media(min-width:701px) and (max-width:1100px){.shell{--sidebar-default:210px}}
 @media(max-width:700px){#sidebar-resize{display:none}}
+
+/* Keep every size of the floating window inside the visible viewport. */
+#mini-diagram-window{display:flex;flex-direction:column}
+#mini-diagram-window .mini-diagram-header,#mini-diagram-window .mini-diagram-controls{flex-shrink:0}
+#mini-diagram{min-height:0;flex-shrink:1}

@@ -1,3 +1,7 @@
+export function floatingPosition(rect,viewport,margin=8){
+ const left=viewport.left+margin,top=viewport.top+margin;
+ return {left:Math.max(left,Math.min(viewport.left+viewport.width-rect.width-margin,rect.left)),top:Math.max(top,Math.min(viewport.top+viewport.height-rect.height-margin,rect.top))};
+}
 // A selectable mirror of the live diagram, available below the main editor.
 export function createMiniDiagram(source,panel,highlighted,select){
  const windowEl=document.getElementById('mini-diagram-window'),view=document.getElementById('mini-diagram'),restore=document.getElementById('restore-mini-diagram'),handle=document.getElementById('mini-diagram-handle');
@@ -16,6 +20,7 @@ export function createMiniDiagram(source,panel,highlighted,select){
    const emphasis=highlighted();
    for(const el of view.querySelectorAll('[data-pool]'))el.classList.toggle('mini-emphasized',emphasis.pool.has(el.dataset.pool));
    for(const el of view.querySelectorAll('[data-process]'))el.classList.toggle('selected',el.classList.contains('selected')||emphasis.flux.has(el.dataset.process));
+   constrain();
    if(focused)view.querySelector(`[${focused.attribute}="${CSS.escape(focused.id)}"]`)?.focus({preventScroll:true});
  }
  function target(el){
@@ -29,12 +34,20 @@ export function createMiniDiagram(source,panel,highlighted,select){
  new IntersectionObserver(([entry])=>{below=entry.boundingClientRect.bottom<=0;if(!below)manuallyOpen=false;visibility();},{threshold:0}).observe(panel);
  document.getElementById('hide-mini-diagram').onclick=()=>{dismissed=true;manuallyOpen=false;visibility();restore.focus({preventScroll:true});};
  restore.onclick=()=>{dismissed=false;manuallyOpen=true;visibility();document.getElementById('hide-mini-diagram').focus({preventScroll:true});};
- function constrain(){
-   if(windowEl.hidden||!windowEl.style.left)return;
-   const rect=windowEl.getBoundingClientRect();
-   windowEl.style.left=`${Math.max(8,Math.min(innerWidth-rect.width-8,rect.left))}px`;
-   windowEl.style.top=`${Math.max(8,Math.min(innerHeight-rect.height-8,rect.top))}px`;
+ function viewport(){
+   const visible=window.visualViewport;
+   return {left:visible?.offsetLeft??0,top:visible?.offsetTop??0,width:Math.min(visible?.width??innerWidth,document.documentElement.clientWidth),height:visible?.height??innerHeight};
  }
+ function constrain(){
+   if(windowEl.hidden)return;
+   const area=viewport();
+   windowEl.style.maxWidth=`${Math.max(0,area.width-16)}px`;
+   windowEl.style.maxHeight=`${Math.max(0,area.height-16)}px`;
+   const position=floatingPosition(windowEl.getBoundingClientRect(),area);
+   windowEl.style.right='auto';windowEl.style.bottom='auto';
+   windowEl.style.left=`${position.left}px`;windowEl.style.top=`${position.top}px`;
+ }
+
  for(const button of windowEl.querySelectorAll('[data-mini-size]'))button.onclick=()=>{
    windowEl.style.removeProperty('width');windowEl.style.removeProperty('height');
    windowEl.dataset.size=button.dataset.miniSize;
@@ -48,8 +61,8 @@ export function createMiniDiagram(source,panel,highlighted,select){
  const grip=document.getElementById('mini-diagram-resize');
  function resizeTo(width,height){
    windowEl.dataset.size='custom';
-   windowEl.style.width=`${Math.max(Math.min(280,innerWidth-24),Math.min(innerWidth-24,width))}px`;
-   windowEl.style.height=`${Math.max(Math.min(180,innerHeight-24),Math.min(innerHeight-24,height))}px`;
+   windowEl.style.width=`${Math.max(Math.min(280,viewport().width-24),Math.min(viewport().width-24,width))}px`;
+   windowEl.style.height=`${Math.max(Math.min(180,viewport().height-24),Math.min(viewport().height-24,height))}px`;
    for(const option of windowEl.querySelectorAll('[data-mini-size]'))option.setAttribute('aria-pressed','false');
    constrain();
  }
@@ -58,6 +71,9 @@ export function createMiniDiagram(source,panel,highlighted,select){
  grip.onpointerup=grip.onpointercancel=()=>{resize=null;};
  grip.onkeydown=e=>{if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key))return;e.preventDefault();const rect=windowEl.getBoundingClientRect();resizeTo(rect.width+(e.key==='ArrowLeft'?-20:e.key==='ArrowRight'?20:0),rect.height+(e.key==='ArrowUp'?-20:e.key==='ArrowDown'?20:0));};
  window.addEventListener('resize',()=>{if(windowEl.dataset.size==='custom'){resizeTo(parseFloat(windowEl.style.width),parseFloat(windowEl.style.height));}constrain();});
+ new ResizeObserver(constrain).observe(windowEl);
+ window.visualViewport?.addEventListener('resize',constrain);
+ window.visualViewport?.addEventListener('scroll',constrain);
  // The editor refreshes this mirror synchronously after rendering the source,
  // including while minimized, so switching models never leaves a stale snapshot.
  return {refresh};

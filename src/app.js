@@ -1,5 +1,5 @@
 import {curvePresentation} from './curve-state.js';
-import {createMiniDiagram} from './mini-diagram.js?v=20261022-mini-resize';
+import {createMiniDiagram} from './mini-diagram.js?v=20261022-mini-live-switch';
 import {excludedFromTransport,transportProblem,groupReservoirs,includedReservoirs,transportLinks,processParts,volumeLaw,normalizeTransportFlags,detachReservoir} from './compartments.js?v=20261021-flux-ports';
 import {fluxBetween,availableFluxLaws} from './editor.js?v=20261021-boundary-laws';
 import {clone,validate,analytical,derivative} from './model.js?v=20261021-flux-ports';
@@ -11,7 +11,7 @@ const $=id=>document.getElementById(id), colors=['#227c75','#426fb0','#8660a8','
 
 const esc=x=>String(x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let model=clone(presets[0]),selected={type:null,id:null},result=null,baseline=null,history=[],future=[],revision=0,timer=null,runTimer,connecting=false,connectionStart=null,grouping=false,groupStart=null,groupEnd=null,groupSelection=new Set();
-let customModels=[];
+let customModels=[],floatingDiagram=null;
 function guidedExampleIndex(){return model.workspaceId?-1:presets.findIndex(p=>p.title===model.title);}
 function renderExampleActions(){
  const index=guidedExampleIndex();
@@ -267,6 +267,7 @@ function renderDiagram(){
  }
  $('diagram').classList.toggle('adding-flux',connecting);
  $('diagram').innerHTML=svg;
+ floatingDiagram?.refresh();
 }
 let inspectorHelp={};
 function propertyHeader(label,key){
@@ -711,5 +712,5 @@ $('diagram-resize').onpointermove=e=>{if(resizeStart)setDiagramHeight(resizeStar
 $('diagram-resize').onpointerup=()=>{resizeStart=null;};$('diagram-resize').onpointercancel=()=>{resizeStart=null;};
 $('diagram-resize').onkeydown=e=>{if(['ArrowUp','ArrowDown','Home','End'].includes(e.key)){e.preventDefault();setDiagramHeight(e.key==='Home'?260:e.key==='End'?1000:diagramHeight+(e.key==='ArrowDown'?20:-20));}};
 new ResizeObserver(()=>{$('diagram').setAttribute('viewBox',`0 0 760 ${canvasHeight()}`);renderDiagram();}).observe($('diagram-pane'));
-const floatingDiagram=createMiniDiagram($('diagram'),document.querySelector('.diagram-panel'),()=>highlightedCurves,choose);
+floatingDiagram=createMiniDiagram($('diagram'),document.querySelector('.diagram-panel'),()=>highlightedCurves,choose);
 saveCurrentModel();render();fitDiagramToModel();run();

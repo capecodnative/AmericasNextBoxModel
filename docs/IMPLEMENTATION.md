@@ -275,3 +275,7 @@ The mini-view display checkboxes are now inside a Display dropdown aligned to th
 ### Manual mini-view sizing
 
 The floating diagram has a bottom-right resize grip supporting pointer dragging and keyboard arrows (20 px steps). Width and height can be set independently; the SVG scales proportionally within the resulting window. Custom dimensions stay within the viewport, with a 280 × 180 px minimum where space allows. Size presets clear custom dimensions and restore automatic proportions. Browser checks verified dragging from 420 × 389 to 320 × 329, keyboard expansion to 340 × 349, and Large resetting width to 600 px. JS syntax check passed. Screenshot: `docs/resizable-mini-preview.png`.
+
+### Immediate mini-view updates on model changes
+
+The main diagram now refreshes the miniature synchronously after each render. Removed the deferred SVG mutation observer and the visibility guard that skipped hidden/minimized refreshes, preventing old model snapshots from persisting during sidebar navigation. Live playback and selection use the same render path. Browser checks verified Example 01 while minimized, switching to Example 06 with matching reservoirs/fluxes in both diagrams, opening a saved nutrient-cycle model, and returning to Example 05. All 42 tests and JS syntax checks pass. Screenshot: `docs/mini-model-switch-preview.png`.

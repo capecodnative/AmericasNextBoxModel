@@ -3,7 +3,6 @@ export function createMiniDiagram(source,panel,highlighted,select){
  const windowEl=document.getElementById('mini-diagram-window'),view=document.getElementById('mini-diagram'),restore=document.getElementById('restore-mini-diagram'),handle=document.getElementById('mini-diagram-handle');
  let below=false,dismissed=false,manuallyOpen=false,drag=null,resize=null;
  function refresh(){
-   if((!below&&!manuallyOpen)||dismissed)return;
    const active=document.activeElement,focused=active&&view.contains(active)?target(active):null;
    const bounds=source.getBBox(),padding=18;
    view.setAttribute('viewBox',bounds.width&&bounds.height?`${bounds.x-padding} ${bounds.y-padding} ${bounds.width+2*padding} ${bounds.height+2*padding}`:source.getAttribute('viewBox'));
@@ -59,6 +58,7 @@ export function createMiniDiagram(source,panel,highlighted,select){
  grip.onpointerup=grip.onpointercancel=()=>{resize=null;};
  grip.onkeydown=e=>{if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key))return;e.preventDefault();const rect=windowEl.getBoundingClientRect();resizeTo(rect.width+(e.key==='ArrowLeft'?-20:e.key==='ArrowRight'?20:0),rect.height+(e.key==='ArrowUp'?-20:e.key==='ArrowDown'?20:0));};
  window.addEventListener('resize',()=>{if(windowEl.dataset.size==='custom'){resizeTo(parseFloat(windowEl.style.width),parseFloat(windowEl.style.height));}constrain();});
- new MutationObserver(refresh).observe(source,{childList:true,attributes:true,subtree:true});
+ // The editor refreshes this mirror synchronously after rendering the source,
+ // including while minimized, so switching models never leaves a stale snapshot.
  return {refresh};
 }

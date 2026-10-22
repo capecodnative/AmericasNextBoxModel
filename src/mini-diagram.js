@@ -1,7 +1,7 @@
 // A selectable mirror of the live diagram, available below the main editor.
 export function createMiniDiagram(source,panel,highlighted,select){
  const windowEl=document.getElementById('mini-diagram-window'),view=document.getElementById('mini-diagram'),restore=document.getElementById('restore-mini-diagram'),handle=document.getElementById('mini-diagram-handle');
- let below=false,dismissed=false,manuallyOpen=false,drag=null;
+ let below=false,dismissed=false,manuallyOpen=false,drag=null,resize=null;
  function refresh(){
    if((!below&&!manuallyOpen)||dismissed)return;
    const active=document.activeElement,focused=active&&view.contains(active)?target(active):null;
@@ -37,6 +37,7 @@ export function createMiniDiagram(source,panel,highlighted,select){
    windowEl.style.top=`${Math.max(8,Math.min(innerHeight-rect.height-8,rect.top))}px`;
  }
  for(const button of windowEl.querySelectorAll('[data-mini-size]'))button.onclick=()=>{
+   windowEl.style.removeProperty('width');windowEl.style.removeProperty('height');
    windowEl.dataset.size=button.dataset.miniSize;
    for(const option of windowEl.querySelectorAll('[data-mini-size]'))option.setAttribute('aria-pressed',String(option===button));
    constrain();
@@ -45,7 +46,19 @@ export function createMiniDiagram(source,panel,highlighted,select){
  handle.onpointermove=e=>{if(!drag)return;windowEl.style.right='auto';windowEl.style.bottom='auto';windowEl.style.left=`${drag.left+e.clientX-drag.x}px`;windowEl.style.top=`${drag.top+e.clientY-drag.y}px`;constrain();};
  handle.onpointerup=handle.onpointercancel=()=>{drag=null;};
  handle.onkeydown=e=>{if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key))return;e.preventDefault();const rect=windowEl.getBoundingClientRect();windowEl.style.right='auto';windowEl.style.bottom='auto';windowEl.style.left=`${rect.left+(e.key==='ArrowLeft'?-20:e.key==='ArrowRight'?20:0)}px`;windowEl.style.top=`${rect.top+(e.key==='ArrowUp'?-20:e.key==='ArrowDown'?20:0)}px`;constrain();};
- window.addEventListener('resize',constrain);
+ const grip=document.getElementById('mini-diagram-resize');
+ function resizeTo(width,height){
+   windowEl.dataset.size='custom';
+   windowEl.style.width=`${Math.max(Math.min(280,innerWidth-24),Math.min(innerWidth-24,width))}px`;
+   windowEl.style.height=`${Math.max(Math.min(180,innerHeight-24),Math.min(innerHeight-24,height))}px`;
+   for(const option of windowEl.querySelectorAll('[data-mini-size]'))option.setAttribute('aria-pressed','false');
+   constrain();
+ }
+ grip.onpointerdown=e=>{if(e.button!==0)return;e.preventDefault();const rect=windowEl.getBoundingClientRect();resize={x:e.clientX,y:e.clientY,width:rect.width,height:rect.height};grip.setPointerCapture(e.pointerId);};
+ grip.onpointermove=e=>{if(resize)resizeTo(resize.width+e.clientX-resize.x,resize.height+e.clientY-resize.y);};
+ grip.onpointerup=grip.onpointercancel=()=>{resize=null;};
+ grip.onkeydown=e=>{if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key))return;e.preventDefault();const rect=windowEl.getBoundingClientRect();resizeTo(rect.width+(e.key==='ArrowLeft'?-20:e.key==='ArrowRight'?20:0),rect.height+(e.key==='ArrowUp'?-20:e.key==='ArrowDown'?20:0));};
+ window.addEventListener('resize',()=>{if(windowEl.dataset.size==='custom'){resizeTo(parseFloat(windowEl.style.width),parseFloat(windowEl.style.height));}constrain();});
  new MutationObserver(refresh).observe(source,{childList:true,attributes:true,subtree:true});
  return {refresh};
 }

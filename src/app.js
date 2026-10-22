@@ -1,5 +1,5 @@
 import {curvePresentation} from './curve-state.js';
-import {createMiniDiagram} from './mini-diagram.js?v=20261022-linked-curves';
+import {createMiniDiagram} from './mini-diagram.js?v=20261022-mini-resize';
 import {excludedFromTransport,transportProblem,groupReservoirs,includedReservoirs,transportLinks,processParts,volumeLaw,normalizeTransportFlags,detachReservoir} from './compartments.js?v=20261021-flux-ports';
 import {fluxBetween,availableFluxLaws} from './editor.js?v=20261021-boundary-laws';
 import {clone,validate,analytical,derivative} from './model.js?v=20261021-flux-ports';

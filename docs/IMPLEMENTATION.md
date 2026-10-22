@@ -257,3 +257,11 @@ Browser checks verified automatic appearance/disappearance across the editor bou
 The floating diagram’s Minimize button leaves a prominent fixed lower-right Show diagram button. This restore control remains available after scrolling back to the editor, and explicitly restoring the preview opens it even alongside the main diagram. Automatic visibility still applies during ordinary scrolling.
 
 Miniature reservoirs, fluxes, compartments and boundary circles now support click and Enter/Space selection through the editor’s existing selection handler. Properties, diagram selection and budget terms stay synchronized without moving or resizing the model. Keyboard focus is restored after the live SVG refresh. Resize/port editing handles remain exclusive to the main diagram. Browser checks verified minimized restoration both below and beside the editor, mouse selection of fluxes, keyboard reservoir/compartment selection, matching budget terms and retained focus. JS syntax checks pass. Screenshot: `docs/selectable-mini-preview.png`.
+
+### Linked diagram and graph selection
+
+Reservoir/flux selection in the main or floating diagram temporarily highlights its graph curve. Selection overlays legend choices without mutating them: a hidden selected curve is temporarily shown, other highlights in the same graph are temporarily suppressed, and deselection or switching to another object restores the previous presentation. Explicit legend clicks continue the normal highlight/hide/restore cycle, clearing the matching diagram selection when necessary.
+
+Both graphs now include wider transparent curve hit targets, with Enter/Space keyboard activation. Clicking a trajectory selects the matching reservoir/flux and highlights it across diagram, mini-view, budget and graph. Pointer clicks and drags retain existing time scrubbing. Selected curves draw last, including their hit targets.
+
+All 42 tests pass, including a regression for restoring hidden/highlighted legend choices after temporary selection. Browser checks verified temporary revelation of a hidden reservoir, restoration of its hidden state and an earlier different highlight on deselection, keyboard curve selection, and pointer selection of Mixing while scrubbing to 10 years. Screenshot: `docs/linked-curve-selection-preview.png`.

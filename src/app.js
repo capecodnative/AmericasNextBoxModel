@@ -1,4 +1,5 @@
-import {createMiniDiagram} from './mini-diagram.js?v=20261022-mini-select';
+import {curvePresentation} from './curve-state.js';
+import {createMiniDiagram} from './mini-diagram.js?v=20261022-linked-curves';
 import {excludedFromTransport,transportProblem,groupReservoirs,includedReservoirs,transportLinks,processParts,volumeLaw,normalizeTransportFlags,detachReservoir} from './compartments.js?v=20261021-flux-ports';
 import {fluxBetween,availableFluxLaws} from './editor.js?v=20261021-boundary-laws';
 import {clone,validate,analytical,derivative} from './model.js?v=20261021-flux-ports';
@@ -374,6 +375,7 @@ function resetCurveVisibility(){for(const curves of [hiddenCurves,highlightedCur
 for(const [id,kind] of [['legend','pool'],['flux-legend','flux']])$(id).onclick=e=>{
  const button=e.target.closest('[data-curve]');if(!button)return;
  const hidden=hiddenCurves[kind],highlighted=highlightedCurves[kind],key=button.dataset.curve;
+ if(selected.id===key&&selected.type===(kind==='flux'?'process':'pool')){selected={type:null,id:null};highlighted.add(key);hidden.delete(key);renderDiagram();renderInspector();renderEquations();}
  if(hidden.has(key))hidden.delete(key);
  else if(highlighted.has(key)){highlighted.delete(key);hidden.add(key);}
  else highlighted.add(key);
@@ -385,7 +387,9 @@ function renderResponseGraph(mode,plotId,legendId,noteId){
  const volumes=m.pools.map(p=>m.compartments.find(c=>c.id===p.compartment).volume);
  const vals=r=>mode==='flux'?r.fluxes.map(x=>shown('constant',x)):r.inventory.map((x,i)=>mode==='concentration'?shown('concentration',x/volumes[i]):shown('inventory',x));
  const labels=mode==='flux'?m.processes:m.pools;
- const kind=mode==='flux'?'flux':'pool',hidden=hiddenCurves[kind],highlighted=highlightedCurves[kind];
+ const kind=mode==='flux'?'flux':'pool';
+ const selectedId=selected.type===(kind==='flux'?'process':'pool')&&labels.some(p=>p.id===selected.id)?selected.id:null;
+ const {hidden,highlighted}=curvePresentation(hiddenCurves[kind],highlightedCurves[kind],selectedId);
  const hasHighlight=labels.some(p=>highlighted.has(p.id)&&!hidden.has(p.id));
  const curveOpacity=id=>hasHighlight&&!highlighted.has(id)?.22:1;
  const visible=labels.map((p,i)=>hidden.has(p.id)?null:i).filter(i=>i!==null);
@@ -413,8 +417,9 @@ function renderResponseGraph(mode,plotId,legendId,noteId){
    // Draw emphasized curves last so they remain visible where trajectories overlap.
    visible.slice().sort((a,b)=>Number(highlighted.has(labels[a].id))-Number(highlighted.has(labels[b].id))).forEach(i=>{const p=labels[i],emphasized=highlighted.has(p.id),opacity=curveOpacity(p.id);svg+=`<path data-series="${esc(p.id)}" d="${path(result.rows,vals,i)}" fill="none" stroke="${seriesColor(i)}" opacity="${opacity}" stroke-width="${emphasized?4.5:2.5}"/>`;if(compatible)svg+=`<path d="${path(baseline.rows,baseVals,i)}" fill="none" stroke="${seriesColor(i)}" stroke-dasharray="6 5" opacity="${opacity*.5}" stroke-width="${emphasized?3:2}"/>`;});
    if(mode!=='flux'&&ref[0]!==null&&visible.includes(0))svg+=`<path d="${trajectoryPath(result.rows,r=>shown('time',r.t),r=>mode==='concentration'?shown('concentration',analytical(m,r.t)/volumes[0]):shown('inventory',analytical(m,r.t)),xScale,yScale)}" fill="none" stroke="#263d40" opacity="${curveOpacity(labels[0].id)}" stroke-width="1.5" stroke-dasharray="3 5"/>`;
+   for(const i of visible.slice().sort((a,b)=>Number(highlighted.has(labels[a].id))-Number(highlighted.has(labels[b].id))))svg+=`<path class="curve-hit-target" data-curve-target="${esc(labels[i].id)}" d="${path(result.rows,vals,i)}" fill="none" stroke="transparent" stroke-width="14" tabindex="0" role="button" aria-label="Highlight ${esc(labels[i].name)} curve"/>`;
    const cursor=xScale.map(shown('time',row.t));
-   if(cursor!==null)svg+=`<line x1="${cursor}" y1="30" x2="${cursor}" y2="225" stroke="#a1afa3" stroke-dasharray="4 4"/>`;
+   if(cursor!==null)svg+=`<line x1="${cursor}" y1="30" x2="${cursor}" y2="225" stroke="#a1afa3" stroke-dasharray="4 4" pointer-events="none"/>`;
  }else if(visible.length)svg+='<text x="530" y="130" text-anchor="middle" font-size="16" fill="#809588">No positive values to plot. Choose a linear scale to see zero or negative values.</text>';
  if(!visible.length)svg+='<text x="530" y="130" text-anchor="middle" font-size="16" fill="#809588">All curves hidden. Select a legend entry to show a curve.</text>';
  $(plotId).innerHTML=svg;
@@ -653,10 +658,11 @@ for(const id of ['plot','flux-plot']){
    if(index<0)return false;
    stop();$('time').value=index;renderResults();renderDiagram();return true;
  };
- plot.onpointerdown=e=>{if(e.button!==0)return;if(scrubGraph(e,true)){e.preventDefault();scrubbing=true;plot.setPointerCapture(e.pointerId);}};
+ plot.onpointerdown=e=>{if(e.button!==0)return;const curve=e.target.closest('[data-curve-target]');if(curve)choose(id==='flux-plot'?'process':'pool',curve.dataset.curveTarget);if(scrubGraph(e,true)){e.preventDefault();scrubbing=true;plot.setPointerCapture(e.pointerId);}};
  plot.onpointermove=e=>{if(scrubbing)scrubGraph(e);};
  plot.onpointerup=e=>{if(scrubbing)scrubGraph(e);scrubbing=false;};
  plot.onpointercancel=()=>{scrubbing=false;};
+ plot.onkeydown=e=>{const curve=e.target.closest('[data-curve-target]');if(!curve||!['Enter',' '].includes(e.key))return;e.preventDefault();const key=curve.dataset.curveTarget;choose(id==='flux-plot'?'process':'pool',key);plot.querySelector(`[data-curve-target="${CSS.escape(key)}"]`)?.focus({preventScroll:true});};
 }
 $('run').onclick=run;$('quantity').onchange=renderResults;$('time').oninput=()=>{renderResults();renderDiagram();};
 $('play').onclick=()=>{if(timer){stop();return;}if(!result)return;if(+$('time').value>=result.rows.length-1)$('time').value=0;$('play').textContent='Ⅱ Pause';timer=setInterval(()=>{const i=+$('time').value+1;if(i>=result.rows.length){stop();return;}$('time').value=i;renderResults();renderDiagram();},50);};

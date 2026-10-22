@@ -1,6 +1,6 @@
 # America’s Next Box Model
 
-An interactive biogeochemical modeling workbench for teaching the connection between reservoir diagrams, budgets, and time-dependent behavior. Local browser computation; no accounts, services, or build step.
+An interactive biogeochemical modeling workbench for learning about box models, material flows in closed and open systems, and time-dependent behaviors. Local browser computation; no accounts, services, or build step.
 
 ## Run locally
 
@@ -12,7 +12,7 @@ python3 -m http.server 4173 --bind 127.0.0.1
 
 Open http://127.0.0.1:4173 in a modern browser. Use HTTP rather than opening `index.html` directly, because the solver runs in a module worker.
 
-## Explore
+## Explore and instructions
 
 - Open any of six editable examples, from linear accumulation to nutrient recycling and scavenging.
 - Use **Diagram font size** to adjust text. Drag the separator below the diagram to resize its height, use Up/Down keys on the separator, or enter **Pane height**. **Reset view** restores the defaults; these preferences persist in this browser.
@@ -24,21 +24,7 @@ Open http://127.0.0.1:4173 in a modern browser. Use HTTP rather than opening `in
 - Save/open portable JSON files, export trajectories as CSV, or export a readable model/equation summary. Edits are also autosaved in this browser; JSON is the portable record.
 - Undo/redo scientific edits and layout moves. A duplicated pool shares its original compartment; a newly added reservoir creates a new compartment.
 
-All initial examples use illustrative parameters. Choose inventory, volume, and time units under **Model units** in the sidebar. Inventory uses a base unit (mol or g) plus a prefix: milli, none, kilo, mega, giga, tera, or peta. All unit selectors, including prefixes, relabel values without rescaling any numbers. No conversion constants are needed. For example, changing yr to day leaves k = 0.2 numerically unchanged and interprets it as 0.2 day⁻¹. Volumes support L, m³, or km³; time supports yr/day/h/s. Inventory, concentration, flux, equation, axis, forcing, and export labels stay consistent with the selected units. JSON saves store values in the selected model units plus their labels. Each preset opens with its original mol/m³/yr defaults. A pulse means a finite change in input rate, not an instantaneous inventory addition. First-order processes transfer material only; advective processes carry water and must balance each compartment’s water budget.
-
-## Verify
-
-Node.js 20+ is sufficient; no npm packages are needed:
-
-```sh
-node --test
-```
-
-On this workstation the system Node installation has a missing dynamic library. The bundled runtime successfully runs the tests:
-
-```sh
-/Users/DCO/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node --test
-```
+All initial examples use illustrative (if not realistic) parameters. Choose inventory, volume, and time units under **Model units** in the sidebar. Inventory uses a base unit (mol or g) plus a prefix: milli, none, kilo, mega, giga, tera, or peta. All unit selectors, including prefixes, relabel values without rescaling any numbers. No conversion constants are needed. For example, changing yr to day leaves k = 0.2 numerically unchanged and interprets it as 0.2 day⁻¹. Volumes support L, m³, or km³; time supports yr/day/h/s. Inventory, concentration, flux, equation, axis, forcing, and export labels stay consistent with the selected units. JSON saves store values in the selected model units plus their labels. Each preset opens with its original mol/m³/yr defaults. A pulse means a finite change in input rate, not an instantaneous inventory addition. First-order processes transfer material only; advective processes carry water and must balance each compartment’s water budget.
 
 See [implementation record](docs/IMPLEMENTATION.md) for schema, scientific budgets, solver methods, source attribution, milestone status, and remaining work. The original [handoff](biogeochemical_box_models_codex_handoff.md) remains project context.
 

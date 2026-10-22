@@ -26,3 +26,16 @@ test('linear ticks round near-equilibrium ranges and retain the full data domain
  assert.ok(signed.map(-2.9)>=0&&signed.map(7.7)<=100);
  assert.equal(signed.ticks.some(x=>Object.is(x,-0)),false);
 });
+
+test('graph scrubbing selects the nearest visible sample on linear and log axes',async()=>{
+ const {nearestVisibleSample}=await import('../src/view.js');
+ const rows=[0,1,10,100].map(t=>({t}));
+ const linear=axisScale(rows.map(r=>r.t),false,95,970);
+ assert.equal(nearestVisibleSample(rows,r=>r.t,linear,linear.map(9)),2);
+ assert.equal(nearestVisibleSample(rows,r=>r.t,linear,-100),0);
+ assert.equal(nearestVisibleSample(rows,r=>r.t,linear,2000),3);
+ const log=axisScale(rows.map(r=>r.t),true,95,970);
+ assert.equal(nearestVisibleSample(rows,r=>r.t,log,log.map(10)),2);
+ assert.equal(nearestVisibleSample(rows,r=>r.t,log,-100),1);
+ assert.equal(nearestVisibleSample(rows,r=>r.t,null,100),-1);
+});

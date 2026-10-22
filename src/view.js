@@ -48,3 +48,11 @@ export function wrapLabel(text,maxWidth,measure){
   if(line||!lines.length)lines.push(line);
   return lines;
 }
+
+// Find the simulated sample nearest a graph position, including logarithmic axes.
+export function nearestVisibleSample(rows,xValue,xScale,pixel){
+ if(!xScale||!Number.isFinite(pixel))return -1;
+ let nearest=-1,distance=Infinity;
+ rows.forEach((row,i)=>{const x=xScale.map(xValue(row));if(x===null)return;const delta=Math.abs(x-pixel);if(delta<distance){distance=delta;nearest=i;}});
+ return nearest;
+}

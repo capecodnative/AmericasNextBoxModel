@@ -23,3 +23,19 @@ test('example 06 deposits dust into the particulate pool',()=>{
  m.processes=m.processes.filter(p=>p.id==='dust');
  assert.deepEqual(derivative(m,0,[30,2]).slice(0,2),[0,1]);
 });
+
+test('external inputs offer only prescribed fluxes; first-order sources are invalid',async()=>{
+ const {availableFluxLaws}=await import('../src/editor.js');
+ assert.deepEqual(availableFluxLaws(null,'surface'),['constant']);
+ const m=clone(presets[3]);
+ m.processes=[fluxBetween('supply',null,'surface')];
+ validate(m);
+ m.processes[0].law='firstOrder';
+ assert.throws(()=>validate(m),/requires pool endpoints/);
+ for(const law of availableFluxLaws('surface',null)){
+   m.processes=[{...fluxBetween('loss','surface',null),law}];
+   validate(m);
+ }
+ assert.ok(availableFluxLaws('surface',null).includes('firstOrder'));
+ assert.ok(!availableFluxLaws('surface',null).includes('exchange'));
+});

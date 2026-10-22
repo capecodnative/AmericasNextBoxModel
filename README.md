@@ -19,7 +19,7 @@ Open http://127.0.0.1:4173 in a modern browser. Use HTTP rather than opening `in
 - Select a reservoir to edit **Display name** (box and legend), **Variable name** (inventory symbol in equations; brackets denote concentration), initial inventory, or compartment volume. Names update as you type; variable names must be unique. Stable internal IDs preserve connections. Drag to rearrange, or focus a box and use arrow keys.
 - Select a process or equation term to inspect its law and coefficient. Diagram selection highlights the corresponding equation terms.
 - Build your own model using **Reservoir**, **Draw connection**, and **Process**. Draw a connection by dragging between boxes or selecting donor then recipient. Keyboard users can activate boxes with Enter. Escape cancels drawing. Process endpoint dropdowns also support boundary sources/sinks.
-- Edits rerun from initial conditions. Inspect inventory, concentration, or flux plots, scrub time, or play/pause the trajectory.
+- Edits rerun from initial conditions. Inspect inventory or concentration above a dedicated flux graph, scrub time, or play/pause the trajectory. Click a legend entry to hide/show its curve; all curves start visible. Each graph has its own logarithmic-axis controls.
 - Pin a baseline before changing parameters. Compatible pool IDs overlay with the saved parameter snapshot. Different models do not overlay. Clear the baseline when finished.
 - Save/open portable JSON files, export trajectories as CSV, or export a readable model/equation summary. Edits are also autosaved in this browser; JSON is the portable record.
 - Undo/redo scientific edits and layout moves. A duplicated pool shares its original compartment; a newly added reservoir creates a new compartment.
@@ -41,3 +41,13 @@ On this workstation the system Node installation has a missing dynamic library. 
 ```
 
 See [implementation record](docs/IMPLEMENTATION.md) for schema, scientific budgets, solver methods, source attribution, milestone status, and remaining work. The original [handoff](biogeochemical_box_models_codex_handoff.md) remains project context.
+
+Click **Build your own model** to create an entry under **Your models**. Edit its title at the top of the workbench; the sidebar updates live. Custom models and their edits save in this browser, so you can switch between them or reload. **Remove Model** in the model-actions dropdown removes an entry, with Undo/Redo available during the session. Use **Save model** to export a JSON backup.
+
+**Open model** imports a JSON file as a new entry under **Your models**, preserving existing models. Opening the same file again creates another independent copy.
+
+Guided explorations offer **Reset Example** to restore their original configuration after edits, and **Save As…** to keep the current version as a named custom model. Reset can be undone.
+
+Use the caret beside **Your models** in the sidebar, or **Your model** above a custom title, for **Open Model**, **Save Model**, and **Remove Model**. Removal is available only for the selected custom model.
+
+Click or drag inside either response graph to scrub to that time and pause playback. Both graphs and the diagram update together; logarithmic time axes are supported. The time readout sits below the slider to keep the slider length stable during playback.

@@ -289,3 +289,11 @@ Added a right-edge separator with pointer capture, Left/Right resizing, Home/End
 Mini-view positioning now uses the visible viewport (including zoom/pan offsets and scrollbar-aware width), with an 8 px inset. Bounds are reapplied synchronously on diagram refresh, when window dimensions change, and on viewport resize/pan, rather than only during manual movement. All size modes support height limits and shrinking diagram content within the available space. This prevents model changes or later content growth from pushing a previously placed preview offscreen.
 
 Added regression coverage for all four edges, content growth and offset viewports; all 44 tests pass. Browser checks dragged the preview beyond the upper-left and lower-right bounds and enlarged it at the lower-right edge; the complete window remained within the visible viewport. Screenshot: `docs/mini-viewport-bounds-preview.png`.
+
+### Response layout and linked time axes (23 October 2026)
+
+Both logarithmic X-axis checkboxes now update together; logarithmic Y-axis controls stay independent. Moved the Inventory/Concentration selector into the Reservoirs heading row and removed Export Summary and its unused click handler. JSON model saves and CSV exports remain available.
+
+Added a left-edge separator for the entire response panel. Dragging right creates a left inset, keeping the panel’s right edge fixed and scaling both SVG graphs to their available width without horizontal graph scrolling. Keyboard Left/Right changes the inset; Home/Enter or double-click resets it; End reserves the maximum space while retaining at least 480 px for the panel. The inset persists locally, adapts to sidebar/window resizing, and is disabled in the stacked mobile layout.
+
+Browser checks verified X-axis synchronization in both directions, concentration selection in the Reservoirs section, absence of the summary button, pointer resizing to a 330 px inset, keyboard expansion to 340 px, persistence after reload, and a floating diagram placed entirely to the left of the graphs. All 44 tests and JS syntax checks pass. Screenshot: `docs/response-layout-preview.png`.

@@ -84,3 +84,13 @@ test('shared-endpoint fluxes get distinct lanes, with the third on the centerlin
  const sameDirection=parallelFluxRoutes(processes.slice(0,3).map(p=>({...p,from:'left',to:'right'})));
  assert.deepEqual(Object.values(sameDirection).map(p=>p.offset),[-55,55,0]);
 });
+
+test('playback label envelopes reserve the widest formatted value, not just the largest number',async()=>{
+ const {maxTextWidth,diagramBounds}=await import('../src/view.js');
+ const values=[100,9.999,0.000001];
+ const format=value=>value<0.001?value.toExponential(2):String(value);
+ const measure=text=>text.length;
+ assert.equal(maxTextWidth(values,format,measure),7);
+ assert.equal(maxTextWidth([...values].reverse(),format,measure),7);
+ assert.deepEqual(diagramBounds([{left:10,right:30,top:20,bottom:40},{left:-5,right:50,top:0,bottom:15}]),{x:-5,y:0,width:55,height:40});
+});

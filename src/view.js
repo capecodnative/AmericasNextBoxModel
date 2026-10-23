@@ -108,3 +108,10 @@ export function parallelFluxRoutes(processes,endpointKey=p=>[p.from,p.to]){
  });
  return routes;
 }
+
+// Measure formatted text, since the largest numeric value need not be the widest label.
+export function maxTextWidth(values,format,measure){return values.reduce((width,value)=>Math.max(width,measure(format(value))),0);}
+export function diagramBounds(rectangles){
+ const left=Math.min(...rectangles.map(r=>r.left)),top=Math.min(...rectangles.map(r=>r.top));
+ return {x:left,y:top,width:Math.max(...rectangles.map(r=>r.right))-left,height:Math.max(...rectangles.map(r=>r.bottom))-top};
+}

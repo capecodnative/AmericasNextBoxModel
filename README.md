@@ -54,3 +54,5 @@ Multiple fluxes between the same boxes use separate routes: two opposing curves,
 The sidebar width can be adjusted by dragging its right-edge divider. Focus the divider and use Left/Right arrows for keyboard resizing; double-click or press Enter to reset. The width is saved locally. Small screens retain the stacked layout.
 
 Drag the response section’s left-edge divider rightward to leave space for the floating diagram on its left. The whole response panel narrows and its graphs scale to fit. The position is saved locally; Left/Right keys resize, and double-click or Enter resets the panel to full width. Narrow screens use the full-width layout.
+
+Diagram boxes and flux labels reserve space for the widest values in each completed run, keeping their layout stable during playback and scrubbing. New scientific inputs or display settings can refit the boxes.

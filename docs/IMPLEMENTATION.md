@@ -303,3 +303,11 @@ Reservoir selection now highlights its entire budget equation row using the rese
 The floating mini-view now starts 18 px from the visible window’s upper-left corner. Dragging and viewport containment remain available; the minimized restore button stays in the lower right.
 
 Fixed a minimize CSS precedence conflict: the custom-size selector had the same specificity as the hidden selector but appeared later, allowing display:flex to override display:none. The hidden-state rule for the floating window and restore button now has explicit priority over all layout rules. Browser verification after manual resizing confirmed hidden=true, computed display:none, a visible restore button, and successful restoration with the restore button hidden again. The available in-app browser was used; Firefox-specific execution was not available. Screenshot: `docs/mini-minimized-fix-preview.png`.
+
+### Stable diagram geometry during playback
+
+Reservoir sizing now measures the widest formatted inventory and concentration across the completed simulation, including the initial condition. Measurements are cached per result and relevant font/unit/variable/volume settings, so boxes do not resize on each time step. Flux label placement likewise reserves the full run’s widest readout. Formatting changes and variable-width digits are handled by measuring every formatted value rather than assuming the largest number is widest. Custom box dimensions and automatic title wrapping remain supported.
+
+The mini-view receives bounds derived from the reserved diagram geometry instead of recomputing its frame from the current text’s SVG bounding box. This also keeps compartment envelopes, arrow routes and preview framing stable as numbers change. Scientific or display edits may refit the diagram; playback and scrubbing do not.
+
+All 45 tests pass, including formatted-width and framing regressions. Browser checks compared complete geometry at 0 and 40 years in the dissolved–particulate example and during playback at 18.1 years: box transforms/dimensions, compartment rectangles, arrow paths, label positions and mini-view frame were identical while values changed. Screenshot: `docs/stable-playback-preview.png`.

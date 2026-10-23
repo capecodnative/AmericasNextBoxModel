@@ -1,14 +1,14 @@
 import {setupResponseResize} from './response-layout.js';
 import {setupSidebarResize} from './sidebar.js';
 import {curvePresentation} from './curve-state.js';
-import {createMiniDiagram} from './mini-diagram.js?v=20261022-mini-bounds';
+import {createMiniDiagram} from './mini-diagram.js?v=20261023-stable-playback';
 import {excludedFromTransport,transportProblem,groupReservoirs,includedReservoirs,transportLinks,processParts,volumeLaw,normalizeTransportFlags,detachReservoir} from './compartments.js?v=20261021-flux-ports';
 import {fluxBetween,availableFluxLaws} from './editor.js?v=20261021-boundary-laws';
 import {clone,validate,analytical,derivative} from './model.js?v=20261021-flux-ports';
 import {presets,blank} from './presets.js?v=20261021-example-setups';
 import {variableName,poolVariable,variableProblem,budgetExpression} from './notation.js?v=20261021-flux-ports';
 import {unitSystem,toCanonical,displayModel} from './units.js';
-import {axisScale,trajectoryPath,arrowBoxContact,wrapLabel,nearestVisibleSample,normalizedBoxPort,boxPortContact,boxBorderNormal,placeDiagramLabel,parallelFluxRoutes} from './view.js?v=20261021-parallel-fluxes';
+import {axisScale,trajectoryPath,arrowBoxContact,wrapLabel,nearestVisibleSample,normalizedBoxPort,boxPortContact,boxBorderNormal,placeDiagramLabel,parallelFluxRoutes,maxTextWidth,diagramBounds} from './view.js?v=20261023-stable-playback';
 const $=id=>document.getElementById(id), colors=['#227c75','#426fb0','#8660a8','#5c8a46','#b05287','#278b9b','#6465a8','#647548','#795d87','#536a7d'], selectedFluxColor='#cd8d3f';
 
 const esc=x=>String(x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -93,15 +93,25 @@ function render(){
  renderDiagram();renderInspector();renderEquations();renderResults();
 }
 function position(id){const i=model.pools.findIndex(p=>p.id===id);return model.layout?.[id]||{x:130+(i%3)*220,y:100+Math.floor(i/3)*110};}
-const labelMeasure=document.createElement('canvas').getContext('2d');
+const labelMeasure=document.createElement('canvas').getContext('2d'),runMetrics=new WeakMap();
+function runMetric(key,compute){
+ if(!result)return compute(null);
+ let cache=runMetrics.get(result);if(!cache){cache=new Map();runMetrics.set(result,cache);}
+ if(!cache.has(key))cache.set(key,compute(result.rows));
+ return cache.get(key);
+}
 function boxDimensions(pool,scale=diagramScale()){
- const measure=(text,font)=>{labelMeasure.font=`${font}px ${getComputedStyle($('diagram')).fontFamily}`;return labelMeasure.measureText(text).width;};
+ const family=getComputedStyle($('diagram')).fontFamily;
+ const measure=(text,font)=>{labelMeasure.font=`${font}px ${family}`;return labelMeasure.measureText(text).width;};
  const padding=12*scale;
- const index=model.pools.findIndex(p=>p.id===pool.id),inventory=currentRow()?.inventory[index]??pool.initial;
+ const index=result?.model.pools.findIndex(p=>p.id===pool.id)??-1;
  const volume=model.compartments.find(c=>c.id===pool.compartment).volume;
  const titleWidth=Math.min(220*scale,measure(pool.name,diagramFont)+2*padding);
- const inventoryWidth=measure(fmt(shown('inventory',inventory)),22*scale)+measure(' '+unitLabel('inventory'),12*scale);
- const concentrationWidth=measure(`[${variableName(pool)}] = ${fmt(shown('concentration',inventory/volume))} ${unitLabel('concentration')}`,12*scale);
+ const {inventoryWidth,concentrationWidth}=runMetric(JSON.stringify(['pool',pool.id,pool.initial,variableName(pool),volume,scale,family,unitLabel('inventory'),unitLabel('concentration')]),rows=>{
+   const values=[pool.initial,...(rows&&index>=0?rows.map(row=>row.inventory[index]):[])];
+   return {inventoryWidth:maxTextWidth(values,value=>fmt(shown('inventory',value)),text=>measure(text,22*scale))+measure(' '+unitLabel('inventory'),12*scale),
+     concentrationWidth:maxTextWidth(values,value=>`[${variableName(pool)}] = ${fmt(shown('concentration',value/volume))} ${unitLabel('concentration')}`,text=>measure(text,12*scale))};
+ });
  const custom=model.diagramSizes?.pools?.[pool.id];
  const width=Math.max(96*scale,custom?.width??titleWidth,inventoryWidth+2*padding,concentrationWidth+2*padding);
  const lines=wrapLabel(pool.name,width-2*padding,text=>measure(text,diagramFont));
@@ -194,7 +204,11 @@ function renderDiagram(){
    labelMeasure.font=`${diagramFont}px ${getComputedStyle($('diagram')).fontFamily}`;
    const fluxReadout=row?`${fmt(shown('constant',row.fluxes[i]))} ${unitLabel('constant')}`:unitLabel(p.law);
    const labelLines=[p.name,fluxReadout,...(showCoefficients?[lawEquation,`${coefficientSymbol} = ${fmt(shown(p.law,p.value))} ${unitLabel(p.law)}`]:[])];
-   const halfWidth=Math.max(...labelLines.map(text=>labelMeasure.measureText(text).width))/2+3*scale;
+   const readoutWidth=runMetric(JSON.stringify(['flux',p.id,diagramFont,labelMeasure.font,unitLabel('constant'),p.law]),rows=>{
+     const index=result?.model.processes.findIndex(q=>q.id===p.id)??-1;
+     return rows&&index>=0?maxTextWidth(rows,row=>`${fmt(shown('constant',row.fluxes[index]))} ${unitLabel('constant')}`,text=>labelMeasure.measureText(text).width):labelMeasure.measureText(fluxReadout).width;
+   });
+   const halfWidth=Math.max(...labelLines.map((text,index)=>index===1?readoutWidth:labelMeasure.measureText(text).width))/2+3*scale;
    const bottom=(showCoefficients?46:13)*scale;
    const obstacles=model.pools.map(pool=>{const point=position(pool.id),box=boxes[pool.id];return {left:point.x-box.width/2-6,right:point.x+box.width/2+6,top:point.y-box.height/2-6,bottom:point.y+box.height/2+($('show-volume').checked?24:6)*scale};}).concat(occupiedLabels,model.processes.filter(q=>!q.from||!q.to).map(q=>{const a=externalPosition(q);return {left:a.x-15,right:a.x+15,top:a.y-15,bottom:a.y+15};}));
    // Put reciprocal labels outside mirrored curves, with matching block-center clearance.
@@ -269,7 +283,13 @@ function renderDiagram(){
  }
  $('diagram').classList.toggle('adding-flux',connecting);
  $('diagram').innerHTML=svg;
- floatingDiagram?.refresh();
+ const frameRects=[...headerObstacles,...Object.values(groups).map(g=>({left:g.left,right:g.left+g.width,top:g.top,bottom:g.top+g.height})),...model.pools.map(p=>{
+   const q=position(p.id),box=boxes[p.id],volumeVisible=$('show-volume').checked&&!groups[p.compartment];
+   const volumeText=`V = ${fmt(shown('volume',model.compartments.find(c=>c.id===p.compartment).volume))} ${unitLabel('volume')}`;
+   const halfWidth=Math.max(box.width/2,volumeVisible?labelMeasure.measureText(volumeText).width/2:0);
+   return {left:q.x-halfWidth,right:q.x+halfWidth,top:q.y-box.height/2,bottom:q.y+box.height/2+(volumeVisible?32*scale:0)};
+ }),...model.processes.filter(p=>!p.from||!p.to).map(p=>{const q=externalPosition(p);return {left:q.x-9,right:q.x+9,top:q.y-9,bottom:q.y+9};})];
+ floatingDiagram?.refresh(diagramBounds(frameRects));
 }
 let inspectorHelp={};
 function propertyHeader(label,key){

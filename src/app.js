@@ -1,3 +1,4 @@
+import {setupResponseResize} from './response-layout.js';
 import {setupSidebarResize} from './sidebar.js';
 import {curvePresentation} from './curve-state.js';
 import {createMiniDiagram} from './mini-diagram.js?v=20261022-mini-bounds';
@@ -360,9 +361,9 @@ window.addEventListener('resize',hidePropertyTooltip);document.addEventListener(
 function fraction(numerator,denominator,label){return `<span class="fraction" role="math" aria-label="${esc(label)}"><span aria-hidden="true" class="numerator">${numerator}</span><span aria-hidden="true" class="denominator">${denominator}</span></span>`;}
 function renderEquations(){
  const displayed=displayModel(model);
- $('equations').innerHTML=model.pools.map(p=>{
+ $('equations').innerHTML=model.pools.map((p,i)=>{
  const terms=model.processes.flatMap(q=>processParts(model,q)).filter(q=>q.from===p.id||q.to===p.id).map(q=>`<button class="term ${selected.type==='process'&&selected.id===q.id?'selected':''}" data-term="${esc(q.id)}" title="${esc(q.name)} · ${esc(unitLabel(q.law))}">${q.to===p.id?'+':'−'} ${esc(budgetExpression(displayed,{...displayed.processes.find(p=>p.id===q.id),from:q.from,to:q.to},fmt,true))}</button>`).join('');
- return `<div class="equation">${fraction(`d(${esc(variableName(p))})`,'dt',`d(${variableName(p)})/dt`)} = ${terms||'0'} <small class="muted">${unitLabel('constant')}</small></div>`;
+ return `<div class="equation ${selected.type==='pool'&&selected.id===p.id?'selected-reservoir':''}" data-budget-pool="${esc(p.id)}" style="--equation-color:${colors[i%colors.length]};--equation-tint:${colors[i%colors.length]}16">${fraction(`d(${esc(variableName(p))})`,'dt',`d(${variableName(p)})/dt`)} = ${terms||'0'} <small class="muted">${unitLabel('constant')}</small></div>`;
  }).join('');
  let text='';
  if(analytical(model,0)!==null){const k=model.processes.filter(p=>p.law==='firstOrder').reduce((s,p)=>s+p.value,0),I=model.processes.filter(p=>p.law==='constant').reduce((s,p)=>s+(p.to?1:-1)*p.value,0);text=k>0?`One-box reference: M(t) = M* + (M₀ − M*) exp(−kt). M* = I/k = ${fmt(shown('inventory',I/k))} ${unitLabel('inventory')}; adjustment time τ = 1/k = ${fmt(shown('time',1/k))} ${unitLabel('time')}. These relations apply to this constant-input, first-order model.`:'Zero-loss reference: M(t) = M₀ + It. With positive net input there is no finite equilibrium.';}
@@ -650,7 +651,8 @@ for(const id of ['show-coefficients','show-volume']){
  const controls=[$(id),$('mini-'+id)];
  for(const control of controls)control.onchange=()=>{for(const other of controls)other.checked=control.checked;renderDiagram();};
 }
-for(const id of ['log-x','log-y','flux-log-x','flux-log-y'])$(id).onchange=renderResults;
+for(const id of ['log-x','flux-log-x'])$(id).onchange=e=>{for(const other of ['log-x','flux-log-x'])$(other).checked=e.target.checked;renderResults();};
+for(const id of ['log-y','flux-log-y'])$(id).onchange=renderResults;
 for(const id of ['plot','flux-plot']){
  const plot=$(id);let scrubbing=false;
  const scrubGraph=(e,starting=false)=>{
@@ -673,11 +675,6 @@ $('run').onclick=run;$('quantity').onchange=renderResults;$('time').oninput=()=>
 $('play').onclick=()=>{if(timer){stop();return;}if(!result)return;if(+$('time').value>=result.rows.length-1)$('time').value=0;$('play').textContent='Ⅱ Pause';timer=setInterval(()=>{const i=+$('time').value+1;if(i>=result.rows.length){stop();return;}$('time').value=i;renderResults();renderDiagram();},50);};
 $('baseline').onclick=()=>{if(result){baseline=clone(result);renderResults();}};$('clear-baseline').onclick=()=>{baseline=null;renderResults();};
 function download(name,data,type){const url=URL.createObjectURL(new Blob([data],{type})),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
-$('summary').onclick=()=>{try{
- validate(model);const shownModel=displayModel(model);
- const text=[model.title,model.question,`Units: ${unitLabel('inventory')}, ${unitLabel('volume')}, ${unitLabel('time')}. Fixed volumes; one tracer currency.`,'',...shownModel.pools.map(p=>`${p.name} [${variableName(p)}]: initial ${fmt(p.initial)} ${unitLabel('inventory')}; volume ${fmt(shownModel.compartments.find(c=>c.id===p.compartment).volume)} ${unitLabel('volume')}`),'',...shownModel.processes.map(p=>`${p.name} [${p.id}]: ${p.from?poolVariable(shownModel,p.from):'boundary'} → ${p.to?poolVariable(shownModel,p.to):'boundary'}; F = ${budgetExpression(shownModel,p,fmt)} ${unitLabel('constant')}; coefficient in ${unitLabel(p.law)}; forcing ${JSON.stringify(p.forcing||{type:'constant'})}`),'',...shownModel.pools.map(p=>`d(${variableName(p)})/dt = `+(shownModel.processes.flatMap(q=>processParts(shownModel,q)).filter(q=>q.from===p.id||q.to===p.id).map(q=>(q.to===p.id?'+':'−')+' ('+budgetExpression(shownModel,q,fmt,true)+')').join(' ')||'0')),'',`Duration: ${shownModel.simulation.duration} ${unitLabel('time')}`,`Solver settings (inventory: ${unitLabel('inventory')}; time: ${unitLabel('time')}): ${JSON.stringify(model.simulation)}`].join('\n');
- download('model-summary.txt',text,'text/plain');
-}catch(e){$('status').textContent=e.message;}};
 function saveModel(){try{validate(model);download('box-model.json',JSON.stringify(model,null,2),'application/json');}catch(e){$('status').textContent=e.message;}};
 document.addEventListener('click',e=>{
  const button=e.target.closest('[data-model-action]');
@@ -717,3 +714,5 @@ floatingDiagram=createMiniDiagram($('diagram'),document.querySelector('.diagram-
 saveCurrentModel();render();fitDiagramToModel();run();
 
 setupSidebarResize();
+
+setupResponseResize();

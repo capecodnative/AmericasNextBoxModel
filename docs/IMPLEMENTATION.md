@@ -319,3 +319,9 @@ Added compact minus/reset/plus controls at the primary diagram’s upper right. 
 The SVG’s world-coordinate viewBox and canvas geometry are based on the unzoomed pane rather than the zoomed SVG width. Zoom scales only its displayed dimensions, preserving saved positions, box dimensions, arrow routing and mini-view framing. Existing screen-to-SVG coordinate conversion keeps pointer editing accurate. Pane resizing and sidebar width changes recalculate display dimensions. At 100% a sufficiently wide pane fits without unnecessary scrolling.
 
 All 45 tests and the app syntax check pass. Browser checks verified fixed world geometry at 100%/150%, the 50%/250% limits, reset, 125% persistence after reload, and pointer selection/dragging at 125%. The temporary drag was undone and the original reservoir position restored. Screenshot: `docs/diagram-zoom-preview.png`.
+
+### Stable zoom scrollbar thresholds
+
+Fixed a feedback loop introduced by zoom sizing: the SVG height used the pane’s clientHeight, which changes when horizontal scrollbars appear. It now uses the configured pane height, while a stable scrollbar gutter prevents vertical scrollbar visibility from changing available width. The resize observer watches the outer diagram viewport instead of the scrollable pane’s changing content box.
+
+Browser checks sampled the default view five times with identical dimensions (client/scroll width 962 px and client/scroll height 593 px), then verified the same dimensions after a 125% → 100% zoom cycle. App syntax check passed. Screenshot: `docs/stable-zoom-scrollbars-preview.png`.

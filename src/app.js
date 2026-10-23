@@ -65,7 +65,8 @@ function externalPosition(process){
 function clampExternalPosition(x,y){return {x:Math.max(14,Math.min(746,x)),y:Math.max(14,Math.min(canvasHeight()-14,y))};}
 function updateDiagramViewport(){
  $('diagram').style.width=`${Math.max(760,$('diagram-pane').clientWidth)*diagramZoom}px`;
- $('diagram').style.height=`${$('diagram-pane').clientHeight*diagramZoom}px`;
+ // Use the fixed pane height: clientHeight shrinks when a scrollbar appears.
+ $('diagram').style.height=`${diagramHeight*diagramZoom}px`;
  $('diagram-zoom-reset').textContent=`${Math.round(diagramZoom*100)}%`;
  $('diagram-zoom-out').disabled=diagramZoom<=.5;$('diagram-zoom-in').disabled=diagramZoom>=2.5;
 }
@@ -748,7 +749,7 @@ $('diagram-resize').onpointerdown=e=>{e.preventDefault();resizeStart={y:e.client
 $('diagram-resize').onpointermove=e=>{if(resizeStart)setDiagramHeight(resizeStart.height+e.clientY-resizeStart.y);};
 $('diagram-resize').onpointerup=()=>{resizeStart=null;};$('diagram-resize').onpointercancel=()=>{resizeStart=null;};
 $('diagram-resize').onkeydown=e=>{if(['ArrowUp','ArrowDown','Home','End'].includes(e.key)){e.preventDefault();setDiagramHeight(e.key==='Home'?260:e.key==='End'?1000:diagramHeight+(e.key==='ArrowDown'?20:-20));}};
-new ResizeObserver(()=>{updateDiagramViewport();$('diagram').setAttribute('viewBox',`0 0 760 ${canvasHeight()}`);renderDiagram();}).observe($('diagram-pane'));
+new ResizeObserver(()=>{updateDiagramViewport();$('diagram').setAttribute('viewBox',`0 0 760 ${canvasHeight()}`);renderDiagram();}).observe(document.querySelector('.diagram-viewport'));
 floatingDiagram=createMiniDiagram($('diagram'),document.querySelector('.diagram-panel'),()=>highlightedCurves,choose);
 saveCurrentModel();render();fitDiagramToModel();run();
 

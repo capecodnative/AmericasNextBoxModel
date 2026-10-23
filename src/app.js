@@ -1,3 +1,4 @@
+import {setupDiagramPan} from './diagram-pan.js';
 import {setupResponseResize} from './response-layout.js';
 import {setupSidebarResize} from './sidebar.js';
 import {curvePresentation} from './curve-state.js';
@@ -756,3 +757,5 @@ saveCurrentModel();render();fitDiagramToModel();run();
 setupSidebarResize();
 
 setupResponseResize();
+
+setupDiagramPan($('diagram-pane'),{enabled:()=>!connecting&&!grouping,deselect:()=>choose(null,null)});

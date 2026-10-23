@@ -57,3 +57,5 @@ The sidebar width can be adjusted by dragging its right-edge divider. Focus the 
 Drag the response section’s left-edge divider rightward to leave space for the floating diagram on its left. The whole response panel narrows and its graphs scale to fit. The position is saved locally; Left/Right keys resize, and double-click or Enter resets the panel to full width. Narrow screens use the full-width layout.
 
 Diagram boxes and flux labels reserve space for the widest values in each completed run, keeping their layout stable during playback and scrubbing. New scientific inputs or display settings can refit the boxes.
+
+Pan the primary diagram by dragging empty background space. Hold Space and drag to pan from a reservoir, compartment or arrow instead. Panning changes only the viewport; a plain background click deselects, and normal box/handle dragging still edits the model.

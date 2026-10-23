@@ -174,3 +174,7 @@ body.resizing-response,body.resizing-response *{cursor:col-resize!important;user
 
 /* Reserve the vertical gutter so scrollbar appearance cannot change zoom sizing. */
 #diagram-pane{scrollbar-gutter:stable}
+
+#diagram-pane{cursor:grab}
+#diagram-pane.pan-ready,#diagram-pane.pan-ready *{cursor:grab!important}
+#diagram-pane.panning,#diagram-pane.panning *{cursor:grabbing!important;user-select:none}

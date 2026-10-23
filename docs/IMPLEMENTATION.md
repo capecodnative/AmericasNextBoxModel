@@ -325,3 +325,9 @@ All 45 tests and the app syntax check pass. Browser checks verified fixed world 
 Fixed a feedback loop introduced by zoom sizing: the SVG height used the pane’s clientHeight, which changes when horizontal scrollbars appear. It now uses the configured pane height, while a stable scrollbar gutter prevents vertical scrollbar visibility from changing available width. The resize observer watches the outer diagram viewport instead of the scrollable pane’s changing content box.
 
 Browser checks sampled the default view five times with identical dimensions (client/scroll width 962 px and client/scroll height 593 px), then verified the same dimensions after a 125% → 100% zoom cycle. App syntax check passed. Screenshot: `docs/stable-zoom-scrollbars-preview.png`.
+
+### Drag-to-pan primary diagram
+
+Added background dragging to pan the primary diagram’s scrollable viewport. Holding Space enables panning from objects as well. Pointer capture keeps the gesture active until release; a movement threshold preserves blank-click deselection. Panning is disabled during flux/compartment creation and does not create history entries or alter saved positions. Ordinary reservoir, compartment, port and resize-handle dragging keeps the existing edit path.
+
+Browser checks at 150% zoom verified background drag changed scroll offsets from (241, 155.5) to (321, 105.5), left reservoir coordinates unchanged and created no undo entry. A normal particle-reservoir drag still changed its model position, Undo restored it, and a blank click cleared selection. JS syntax checks passed. Screenshot: `docs/diagram-pan-preview.png`.

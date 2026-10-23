@@ -311,3 +311,11 @@ Reservoir sizing now measures the widest formatted inventory and concentration a
 The mini-view receives bounds derived from the reserved diagram geometry instead of recomputing its frame from the current text’s SVG bounding box. This also keeps compartment envelopes, arrow routes and preview framing stable as numbers change. Scientific or display edits may refit the diagram; playback and scrubbing do not.
 
 All 45 tests pass, including formatted-width and framing regressions. Browser checks compared complete geometry at 0 and 40 years in the dissolved–particulate example and during playback at 18.1 years: box transforms/dimensions, compartment rectangles, arrow paths, label positions and mini-view frame were identical while values changed. Screenshot: `docs/stable-playback-preview.png`.
+
+### Primary diagram zoom
+
+Added compact minus/reset/plus controls at the primary diagram’s upper right. Zoom changes in 25% steps between 50% and 250%; the percentage button resets to 100%. Enlarged diagrams scroll inside the existing pane, approximately retaining the viewport center when zoom changes. Zoom persists with diagram view preferences and Reset view resets it as well.
+
+The SVG’s world-coordinate viewBox and canvas geometry are based on the unzoomed pane rather than the zoomed SVG width. Zoom scales only its displayed dimensions, preserving saved positions, box dimensions, arrow routing and mini-view framing. Existing screen-to-SVG coordinate conversion keeps pointer editing accurate. Pane resizing and sidebar width changes recalculate display dimensions. At 100% a sufficiently wide pane fits without unnecessary scrolling.
+
+All 45 tests and the app syntax check pass. Browser checks verified fixed world geometry at 100%/150%, the 50%/250% limits, reset, 125% persistence after reload, and pointer selection/dragging at 125%. The temporary drag was undone and the original reservoir position restored. Screenshot: `docs/diagram-zoom-preview.png`.

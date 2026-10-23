@@ -15,6 +15,7 @@ Open http://127.0.0.1:4173 in a modern browser. Use HTTP rather than opening `in
 ## Explore and instructions
 
 - Open any of six editable examples, from linear accumulation to nutrient recycling and scavenging.
+- Use the small **− / percentage / +** controls at the upper right of the primary diagram to zoom from 50% to 250%. Click the percentage to reset to 100%; scroll inside the pane to reach enlarged areas. Zoom is saved locally and does not change the model layout.
 - Use **Diagram font size** to adjust text. Drag the separator below the diagram to resize its height, use Up/Down keys on the separator, or enter **Pane height**. **Reset view** restores the defaults; these preferences persist in this browser.
 - Select a reservoir to edit **Display name** (box and legend), **Variable name** (inventory symbol in equations; brackets denote concentration), initial inventory, or compartment volume. Names update as you type; variable names must be unique. Stable internal IDs preserve connections. Drag to rearrange, or focus a box and use arrow keys.
 - Select a process or equation term to inspect its law and coefficient. Diagram selection highlights the corresponding equation terms.

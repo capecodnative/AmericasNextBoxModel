@@ -47,13 +47,14 @@ function renderUnits(){
  const labels={inventory:`Inventory · ${unitLabel('inventory')}`,concentration:`Concentration · ${unitLabel('concentration')}`,flux:`Flux · ${unitLabel('constant')}`};
  for(const option of $('quantity').options)option.textContent=labels[option.value];
 }
-let diagramFont=14,diagramHeight=350;
-try{const saved=JSON.parse(localStorage.getItem('anbm-diagram-view')||'{}');if(Number.isFinite(saved.font))diagramFont=Math.max(11,Math.min(20,saved.font));if(Number.isFinite(saved.height))diagramHeight=Math.max(260,Math.min(1000,saved.height));}catch{}
+let diagramFont=14,diagramHeight=350,diagramZoom=1;
+try{const saved=JSON.parse(localStorage.getItem('anbm-diagram-view')||'{}');if(Number.isFinite(saved.font))diagramFont=Math.max(11,Math.min(20,saved.font));if(Number.isFinite(saved.height))diagramHeight=Math.max(260,Math.min(1000,saved.height));if(Number.isFinite(saved.zoom))diagramZoom=Math.max(.5,Math.min(2.5,saved.zoom));}catch{}
 const diagramScale=()=>diagramFont/14;
-function canvasHeight(){return Math.max(350,diagramHeight*760/Math.max(760,$('diagram').getBoundingClientRect().width));}
+const diagramBaseWidth=()=>Math.max(760,$('diagram-pane').getBoundingClientRect().width);
+function canvasHeight(){return Math.max(350,diagramHeight*760/diagramBaseWidth());}
 function fitDiagramToModel(){
  const bottom=Math.max(0,...model.pools.map(p=>position(p.id).y+90),...model.processes.filter(p=>(!p.from||!p.to)&&model.layout?.[p.id]).map(p=>model.layout[p.id].y+20));
- diagramHeight=Math.min(1000,Math.max(diagramHeight,Math.ceil(bottom*Math.max(760,$('diagram').getBoundingClientRect().width)/760)));
+ diagramHeight=Math.min(1000,Math.max(diagramHeight,Math.ceil(bottom*diagramBaseWidth()/760)));
  applyDiagramView();
 }
 function externalPosition(process){
@@ -62,12 +63,27 @@ function externalPosition(process){
  return {x:box.x,y:process.from?Math.min(canvasHeight()-18,box.y+135):Math.max(18,box.y-135)};
 }
 function clampExternalPosition(x,y){return {x:Math.max(14,Math.min(746,x)),y:Math.max(14,Math.min(canvasHeight()-14,y))};}
+function updateDiagramViewport(){
+ $('diagram').style.width=`${Math.max(760,$('diagram-pane').clientWidth)*diagramZoom}px`;
+ $('diagram').style.height=`${$('diagram-pane').clientHeight*diagramZoom}px`;
+ $('diagram-zoom-reset').textContent=`${Math.round(diagramZoom*100)}%`;
+ $('diagram-zoom-out').disabled=diagramZoom<=.5;$('diagram-zoom-in').disabled=diagramZoom>=2.5;
+}
+function saveDiagramView(){try{localStorage.setItem('anbm-diagram-view',JSON.stringify({font:diagramFont,height:diagramHeight,zoom:diagramZoom}));}catch{}}
+function setDiagramZoom(value){
+ const pane=$('diagram-pane'),previous=diagramZoom;
+ const center={x:pane.scrollLeft+pane.clientWidth/2,y:pane.scrollTop+pane.clientHeight/2};
+ diagramZoom=Math.max(.5,Math.min(2.5,value));updateDiagramViewport();
+ pane.scrollLeft=center.x*diagramZoom/previous-pane.clientWidth/2;
+ pane.scrollTop=center.y*diagramZoom/previous-pane.clientHeight/2;
+ saveDiagramView();
+}
 function applyDiagramView(){
  $('diagram-font').value=diagramFont;$('diagram-font-label').textContent=`${diagramFont} px`;
  $('diagram-height').value=diagramHeight;$('diagram-pane').style.height=`${diagramHeight}px`;
  $('diagram-resize').setAttribute('aria-valuenow',diagramHeight);
  $('diagram').setAttribute('viewBox',`0 0 760 ${canvasHeight()}`);
- try{localStorage.setItem('anbm-diagram-view',JSON.stringify({font:diagramFont,height:diagramHeight}));}catch{}
+ updateDiagramViewport();saveDiagramView();
  renderDiagram();
 }
 const worker=new Worker(new URL('./worker.js?v=20261021-flux-ports',import.meta.url),{type:'module'});
@@ -723,13 +739,16 @@ try{const saved=localStorage.getItem('anbm-model');if(saved){model=normalizeTran
 $('diagram-font').oninput=e=>{diagramFont=+e.target.value;applyDiagramView();};
 function setDiagramHeight(value){if(!Number.isFinite(value))return;diagramHeight=Math.round(Math.max(260,Math.min(1000,value)));applyDiagramView();}
 $('diagram-height').onchange=e=>setDiagramHeight(+e.target.value);
-$('reset-diagram-view').onclick=()=>{diagramFont=14;diagramHeight=350;applyDiagramView();};
+$('reset-diagram-view').onclick=()=>{diagramFont=14;diagramHeight=350;diagramZoom=1;applyDiagramView();};
+$('diagram-zoom-in').onclick=()=>setDiagramZoom(diagramZoom+.25);
+$('diagram-zoom-out').onclick=()=>setDiagramZoom(diagramZoom-.25);
+$('diagram-zoom-reset').onclick=()=>setDiagramZoom(1);
 let resizeStart=null;
 $('diagram-resize').onpointerdown=e=>{e.preventDefault();resizeStart={y:e.clientY,height:diagramHeight};$('diagram-resize').setPointerCapture(e.pointerId);};
 $('diagram-resize').onpointermove=e=>{if(resizeStart)setDiagramHeight(resizeStart.height+e.clientY-resizeStart.y);};
 $('diagram-resize').onpointerup=()=>{resizeStart=null;};$('diagram-resize').onpointercancel=()=>{resizeStart=null;};
 $('diagram-resize').onkeydown=e=>{if(['ArrowUp','ArrowDown','Home','End'].includes(e.key)){e.preventDefault();setDiagramHeight(e.key==='Home'?260:e.key==='End'?1000:diagramHeight+(e.key==='ArrowDown'?20:-20));}};
-new ResizeObserver(()=>{$('diagram').setAttribute('viewBox',`0 0 760 ${canvasHeight()}`);renderDiagram();}).observe($('diagram-pane'));
+new ResizeObserver(()=>{updateDiagramViewport();$('diagram').setAttribute('viewBox',`0 0 760 ${canvasHeight()}`);renderDiagram();}).observe($('diagram-pane'));
 floatingDiagram=createMiniDiagram($('diagram'),document.querySelector('.diagram-panel'),()=>highlightedCurves,choose);
 saveCurrentModel();render();fitDiagramToModel();run();
 
